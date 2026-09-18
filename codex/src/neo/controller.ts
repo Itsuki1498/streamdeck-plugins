@@ -31,7 +31,7 @@ export class NeoController {
   private snapshot: CodexSnapshot = { connected: false, slots: [], approvals: [], status: "offline", observedAt: 0 };
   private gitSnapshot: GitSnapshot = { state: "no-repo", modifiedFiles: 0, stagedFiles: 0, untrackedFiles: 0, conflictFiles: 0, ahead: 0, behind: 0, observedAt: 0 };
   private gitWorkspaces: GitWorkspaceContext[] = [];
-  private selectedGitThreadId?: string;
+  private selectedGitWorkspacePath?: string;
   private readonly gitActionStates = new Map<string, "ready" | "running" | "ok" | "fail">();
   private readonly gitActionResults = new Map<string, string>();
   private readonly gitNoticeTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -61,7 +61,7 @@ export class NeoController {
     this.adapter.close();
     this.gitAdapter.close();
     this.gitWorkspaces = [];
-    this.selectedGitThreadId = undefined;
+    this.selectedGitWorkspacePath = undefined;
     this.gitSnapshot = { state: "no-repo", modifiedFiles: 0, stagedFiles: 0, untrackedFiles: 0, conflictFiles: 0, ahead: 0, behind: 0, observedAt: 0 };
   }
 
@@ -138,10 +138,10 @@ export class NeoController {
       if (completedWorkingTaskCount(this.snapshot.slots, next.slots) > 0) this.startCompletionPulse();
       this.snapshot = next;
       this.gitWorkspaces = await this.readGitWorkspaces(next);
-      const selected = this.gitWorkspaces.find((context) => context.observation.threadId === this.selectedGitThreadId)
+      const selected = this.gitWorkspaces.find((context) => context.snapshot.workspacePath === this.selectedGitWorkspacePath)
         ?? this.gitWorkspaces.find((context) => context.observation.threadId === next.activeThreadId)
         ?? this.gitWorkspaces[0];
-      this.selectedGitThreadId = selected?.observation.threadId;
+      this.selectedGitWorkspacePath = selected?.snapshot.workspacePath;
       this.gitSnapshot = selected?.snapshot ?? await this.gitAdapter.snapshot(next.workspacePath);
       this.queue = reconcileApprovalQueue(this.queue, next.approvals);
       this.notice = "";
@@ -149,7 +149,7 @@ export class NeoController {
       // Never keep approval data actionable after a bridge failure.
       this.snapshot = { connected: false, slots: [], approvals: [], status: "offline", observedAt: Date.now() };
       this.gitWorkspaces = [];
-      this.selectedGitThreadId = undefined;
+      this.selectedGitWorkspacePath = undefined;
       this.gitSnapshot = await this.gitAdapter.snapshot(undefined);
       this.queue = { approvals: [], selectedIndex: 0 };
     } finally {
@@ -191,7 +191,7 @@ export class NeoController {
         title = gitStatusTitle(this.gitSnapshot);
       } else if (isGitFocusCommand(command)) {
         const context = this.gitWorkspaces[gitFocusIndex(command)];
-        state = context?.observation.threadId === this.selectedGitThreadId ? 1 : 0;
+        state = context?.snapshot.workspacePath === this.selectedGitWorkspacePath ? 1 : 0;
         title = context ? gitWorkspaceScopeTitle(context.snapshot) : "";
       } else if (isGitCodexCommand(command)) {
         const status = this.gitActionStates.get(action.id) ?? "ready";
@@ -247,8 +247,9 @@ export class NeoController {
     }
     const unique = new Map<string, CodexWorkspace>();
     for (const observation of observations) {
-      if (unique.has(observation.threadId)) continue;
-      unique.set(observation.threadId, observation);
+      const key = observation.workspacePath ?? `thread:${observation.threadId}`;
+      if (unique.has(key)) continue;
+      unique.set(key, observation);
       if (unique.size >= maxGitFocusButtons) break;
     }
     return Promise.all([...unique.values()].map(async (observation) => ({
@@ -260,7 +261,7 @@ export class NeoController {
   private selectGitWorkspace(command: GitFocusCommand): void {
     const context = this.gitWorkspaces[gitFocusIndex(command)];
     if (!context) return;
-    this.selectedGitThreadId = context.observation.threadId;
+    this.selectedGitWorkspacePath = context.snapshot.workspacePath;
     this.gitSnapshot = context.snapshot;
   }
 
