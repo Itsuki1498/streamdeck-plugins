@@ -1,0 +1,24 @@
+{
+  "name": "musescore-streamdeck-plugin",
+  "version": "0.1.0",
+  "description": "Stream Deck plugin for MuseScore 4",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "validate": "streamdeck validate plugin/com.codex.musescore-control.sdPlugin",
+    "pack": "streamdeck pack plugin/com.codex.musescore-control.sdPlugin --force --output release",
+    "sync:icons": "node scripts/sync-palette-icons.mjs"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^2.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@types/node": "^24.0.0",
+    "rollup": "^4.52.0",
+    "typescript": "^5.9.2",
+    "tslib": "^2.8.1"
+  }
+}

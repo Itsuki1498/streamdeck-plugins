@@ -1,0 +1,19 @@
+node_modules/
+.DS_Store
+
+# Generated plugin output
+plugin/com.codex.musescore-control.sdPlugin/bin/
+release/
+
+# Runtime logs
+plugin/com.codex.musescore-control.sdPlugin/logs/
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+.npmrc
+*.pem
+*.key
+*.p12
+*.pfx
