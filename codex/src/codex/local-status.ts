@@ -1,6 +1,6 @@
 import { closeSync, fstatSync, openSync, readSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import type { CodexStatus } from "./types.js";
 
 const MAX_THREADS = 16;
@@ -33,6 +33,7 @@ export type LocalThreadObservation = {
   threadId: string;
   status: CodexStatus;
   observedAt: number;
+  workspacePath?: string;
 };
 
 function text(value: unknown): string {
@@ -151,8 +152,16 @@ export function rolloutThreadId(file: string): string | undefined {
   return file.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:_|\.jsonl$)/i)?.[1];
 }
 
+function workspacePathFrom(events: readonly RolloutEvent[]): string | undefined {
+  for (const event of events) {
+    const cwd = event.payload?.cwd;
+    if (typeof cwd === "string" && isAbsolute(cwd)) return cwd;
+  }
+  return undefined;
+}
+
 export class LocalCodexStatus {
-  private readonly cache = new Map<string, { observedAt: number; status: CodexStatus }>();
+  private readonly cache = new Map<string, { observedAt: number; status: CodexStatus; workspacePath?: string }>();
 
   close(): void {
     this.cache.clear();
@@ -172,15 +181,21 @@ export class LocalCodexStatus {
         const status = cached?.observedAt === tail.observedAt
           ? cached.status
           : reduceRolloutEvents(events ?? [], now);
-        this.cache.set(file, { observedAt: tail.observedAt, status });
+        const workspacePath = cached?.observedAt === tail.observedAt
+          ? cached.workspacePath
+          : workspacePathFrom(events ?? []);
+        this.cache.set(file, { observedAt: tail.observedAt, status, workspacePath });
         const previous = observationsByThread.get(threadId);
         const observation: LocalThreadObservation = {
           threadId,
           status,
           observedAt: tail.observedAt,
+          ...(workspacePath ?? previous?.workspacePath ? { workspacePath: workspacePath ?? previous?.workspacePath } : {}),
         };
         if (!previous || observation.observedAt >= previous.observedAt) {
           observationsByThread.set(threadId, observation);
+        } else if (!previous.workspacePath && workspacePath) {
+          observationsByThread.set(threadId, { ...previous, workspacePath });
         }
       }
       return [...observationsByThread.values()].sort((left, right) => right.observedAt - left.observedAt);

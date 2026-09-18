@@ -8,6 +8,7 @@ import { sanitizeText, summaryHash } from "../src/codex/sanitize.ts";
 import { reduceRolloutEvents, rolloutThreadId } from "../src/codex/local-status.ts";
 import { mergeLocalSlots } from "../src/codex/slot-merge.ts";
 import { imageForState, normalizeCustomImageSettings } from "../src/neo/custom-image.ts";
+import { gitStatusTitle, gitWorkspaceDisplayTitle, parseGitStatus } from "../src/git/status.ts";
 import type { PendingApproval } from "../src/codex/types.ts";
 
 const approval = (threadId: string, summary: string): PendingApproval => ({
@@ -64,6 +65,21 @@ test("formats compact reset times for the usage key", () => {
   assert.equal(formatResetCompact(now + 42 * 60_000, now), "42m");
   assert.equal(formatResetCompact(now + (5 * 60 + 20) * 60_000, now), "5h20m");
   assert.equal(formatResetCompact(now + (2 * 1440 + 3 * 60) * 60_000, now), "2d3h");
+});
+
+test("parses local Git status into dashboard counters", () => {
+  const snapshot = parseGitStatus([
+    "# branch.head main",
+    "# branch.ab +2 -1",
+    "1 .M N... 100644 100644 100644 abc def file.ts",
+    "1 M. N... 100644 100644 100644 abc def staged.ts",
+    "u UU N... 100644 100644 100644 100644 abc def ghi conflict.ts",
+    "? new.ts",
+  ].join("\n"), "/repo/project");
+  assert.equal(snapshot.state, "conflict");
+  assert.deepEqual({ modified: snapshot.modifiedFiles, staged: snapshot.stagedFiles, untracked: snapshot.untrackedFiles, conflicts: snapshot.conflictFiles, ahead: snapshot.ahead, behind: snapshot.behind }, { modified: 2, staged: 1, untracked: 1, conflicts: 1, ahead: 2, behind: 1 });
+  assert.match(gitStatusTitle(snapshot), /^ROOT\nCONFLICT$/);
+  assert.equal(gitWorkspaceDisplayTitle({ ...snapshot, workspacePath: "/repo/project/codex" }), "project/codex");
 });
 
 test("renders usage keys with a standard sans-serif raster image", () => {

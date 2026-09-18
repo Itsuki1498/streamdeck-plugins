@@ -6,6 +6,9 @@
 - `Codex Next Approval`：複数 approval を切り替え
 - `Codex 5H Usage` / `Codex Weekly Usage`：キーに配置可能。使用量は自動更新
 - `Codex Status`：待機時は `0`、稼働時は現在稼働中の作業数だけを標準タイトルで表示。作業完了時は外周が短時間点滅する
+- `Git Status`：現在選択中のCodex workspaceのローカルGit状態を表示
+- `Git Focus 1`〜`Git Focus 6`：最近のCodex workspaceを選択し、対象リポジトリを切り替え
+- `Git Diff` / `Git Review` / `Git Test` / `Git Commit Prep`：ローカルリポジトリに対して、変更・レビュー・安全なチェック・commit準備をCodexへ依頼。commitやpushは実行しない
 - 承認が来ると `Codex Approve` は明るい強調状態、`Codex Reject` は警告状態に切り替わる
 - StatusはCodex画面の6スロットに加えて、`~/.codex/sessions` の最新rolloutイベントも750ms間隔で監視するため、現在のデスクトップ作業が画面スロットに出ていない場合も稼働数に反映する
 - Status/Usageは透明な動的オーバーレイで、Statusは数字だけ、Usageはメーターと％だけを描画する。アイコンや全面プレートは描画せず、キー背景が見える。
@@ -24,6 +27,9 @@
 | 5H Usage | 5時間枠の残量を `5H`、メーター、パーセンテージで表示。自動更新 |
 | Weekly Usage | 週間枠の残量を `WEEK`、メーター、パーセンテージで表示。自動更新 |
 | Status | 待機時は `0`、稼働時は重複排除した現在稼働中の作業数を表示します。作業完了時に外周が点滅します |
+| Git Status | 選択中のworkspaceのローカルGit状態を表示します |
+| Git Focus 1〜6 | 最近のworkspaceを選択し、Git操作の対象を切り替えます |
+| Git Diff / Review / Test / Commit Prep | ローカルGit差分に対する読み取り中心のCodex操作です。commit／pushは行いません |
 
 ### 画像の変更
 

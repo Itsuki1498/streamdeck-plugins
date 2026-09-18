@@ -1,6 +1,6 @@
 # Codex Neo Deck
 
-Stream Deck Neo向けのCodexプラグインです。Codexの承認操作、稼働状況、使用制限をStream Deckから確認できます。
+Stream Deck Neo向けのCodexプラグインです。Codexの承認操作、稼働状況、使用制限、ローカルGit状態をStream Deckから確認できます。
 
 ## 開発
 

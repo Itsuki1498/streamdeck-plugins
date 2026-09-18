@@ -23,6 +23,17 @@ const glyphs = {
   "usage-weekly": { color: colors.cyan, draw: drawCalendar },
   status: { color: colors.green, draw: drawPulse },
   infobar: { color: colors.cyan, draw: drawInfoBar },
+  "git-status": { color: colors.green, draw: drawGitStatus },
+  "git-diff": { color: colors.cyan, draw: drawGitDiff },
+  "git-review": { color: colors.violet, draw: drawGitReview },
+  "git-test": { color: colors.green, draw: drawGitTest },
+  "git-commit-prep": { color: colors.amber, draw: drawGitCommitPrep },
+  "git-focus-1": { color: colors.cyan, draw: (image, color) => drawGitFocus(image, color, 1) },
+  "git-focus-2": { color: colors.cyan, draw: (image, color) => drawGitFocus(image, color, 2) },
+  "git-focus-3": { color: colors.cyan, draw: (image, color) => drawGitFocus(image, color, 3) },
+  "git-focus-4": { color: colors.cyan, draw: (image, color) => drawGitFocus(image, color, 4) },
+  "git-focus-5": { color: colors.cyan, draw: (image, color) => drawGitFocus(image, color, 5) },
+  "git-focus-6": { color: colors.cyan, draw: (image, color) => drawGitFocus(image, color, 6) },
 };
 
 const statusStates = {
@@ -150,6 +161,55 @@ function drawInfoBar(image, color) {
   line(image, image.size * 0.27, image.size * 0.59, image.size * 0.6, image.size * 0.59, image.size * 0.08, cutout);
 }
 
+function drawGitStatus(image, color) {
+  circle(image, image.size * 0.27, image.size * 0.28, image.size * 0.1, color);
+  circle(image, image.size * 0.27, image.size * 0.72, image.size * 0.1, color);
+  circle(image, image.size * 0.73, image.size * 0.5, image.size * 0.1, color);
+  line(image, image.size * 0.27, image.size * 0.38, image.size * 0.27, image.size * 0.62, image.size * 0.08, color);
+  line(image, image.size * 0.37, image.size * 0.28, image.size * 0.63, image.size * 0.5, image.size * 0.08, color);
+  line(image, image.size * 0.37, image.size * 0.72, image.size * 0.63, image.size * 0.5, image.size * 0.08, color);
+}
+
+function drawGitDiff(image, color) {
+  line(image, image.size * 0.22, image.size * 0.3, image.size * 0.78, image.size * 0.3, image.size * 0.09, color);
+  line(image, image.size * 0.22, image.size * 0.7, image.size * 0.78, image.size * 0.7, image.size * 0.09, color);
+  line(image, image.size * 0.32, image.size * 0.2, image.size * 0.32, image.size * 0.4, image.size * 0.08, color);
+  line(image, image.size * 0.68, image.size * 0.6, image.size * 0.68, image.size * 0.8, image.size * 0.08, color);
+}
+
+function drawGitReview(image, color) {
+  circle(image, image.size * 0.42, image.size * 0.42, image.size * 0.23, color, image.size * 0.08);
+  line(image, image.size * 0.59, image.size * 0.59, image.size * 0.79, image.size * 0.79, image.size * 0.1, color);
+  line(image, image.size * 0.31, image.size * 0.43, image.size * 0.4, image.size * 0.52, image.size * 0.07, color);
+  line(image, image.size * 0.4, image.size * 0.52, image.size * 0.55, image.size * 0.34, image.size * 0.07, color);
+}
+
+function drawGitTest(image, color) {
+  roundedRect(image, image.size * 0.27, image.size * 0.3, image.size * 0.73, image.size * 0.78, image.size * 0.12, color);
+  line(image, image.size * 0.38, image.size * 0.55, image.size * 0.46, image.size * 0.64, image.size * 0.07, colors.navy);
+  line(image, image.size * 0.46, image.size * 0.64, image.size * 0.63, image.size * 0.45, image.size * 0.07, colors.navy);
+}
+
+function drawGitCommitPrep(image, color) {
+  circle(image, image.size * 0.5, image.size * 0.5, image.size * 0.32, color, image.size * 0.08);
+  line(image, image.size * 0.31, image.size * 0.51, image.size * 0.45, image.size * 0.64, image.size * 0.09, color);
+  line(image, image.size * 0.45, image.size * 0.64, image.size * 0.71, image.size * 0.35, image.size * 0.09, color);
+}
+
+function drawGitFocus(image, color, digit) {
+  const left = image.size * 0.3;
+  const right = image.size * 0.7;
+  const top = image.size * 0.2;
+  const middle = image.size * 0.5;
+  const bottom = image.size * 0.8;
+  const segments = { a: [left, top, right, top], b: [right, top, right, middle], c: [right, middle, right, bottom], d: [left, bottom, right, bottom], e: [left, middle, left, bottom], f: [left, top, left, middle], g: [left, middle, right, middle] };
+  const digits = { 1: ["b", "c"], 2: ["a", "b", "g", "e", "d"], 3: ["a", "b", "g", "c", "d"], 4: ["f", "g", "b", "c"], 5: ["a", "f", "g", "c", "d"], 6: ["a", "f", "g", "e", "c", "d"] };
+  for (const segment of digits[digit] ?? []) {
+    const [x1, y1, x2, y2] = segments[segment];
+    line(image, x1, y1, x2, y2, image.size * 0.1, color);
+  }
+}
+
 function drawWithShadow(image, draw, color) {
   const shadow = { size: image.size, state: image.state, data: Buffer.alloc(image.data.length) };
   draw(shadow, [0, 0, 0, 170]);
@@ -209,12 +269,13 @@ function makeImage(size, name, { state = false, attention = false, highlight = f
   const image = { size, state, data: Buffer.alloc(size * size * 4) };
   const baseName = name.replace(/-(attention|highlight|busy|v2|selected)$/, "");
   const glyph = glyphs[baseName] ?? glyphs.status;
-  const drawGlyph = (color) => ["approve", "reject", "next"].includes(baseName)
+  const drawGlyph = (color) => ["approve", "reject", "next", "git-status", "git-diff", "git-review", "git-test", "git-commit-prep"].includes(baseName) || baseName.startsWith("git-focus-")
     ? drawWithShadow(image, glyph.draw, color)
     : glyph.draw(image, color);
   if (state) {
     fill(image, [0, 0, 0, 0]);
-    const color = statusStates[name] ?? (attention ? (baseName === "approve" ? colors.green : colors.red) : highlight ? colors.amber : busy ? colors.amber : glyph.color);
+    const gitStatusColor = { "git-status-dirty": colors.amber, "git-status-conflict": colors.red, "git-status-norepo": colors.violet }[name];
+    const color = statusStates[name] ?? gitStatusColor ?? (attention ? (baseName === "approve" ? colors.green : colors.red) : highlight ? colors.amber : busy ? colors.amber : glyph.color);
     drawGlyph(color);
   } else {
     const transparent = [0, 0, 0, 0];
@@ -244,4 +305,9 @@ await writePair("states", "approve-attention", { state: true, attention: true })
 await writePair("states", "reject-attention", { state: true, attention: true });
 await writePair("states", "next-highlight", { state: true, highlight: true });
 await writePair("states", "refresh-busy", { state: true, busy: true });
+await writePair("states", "git-status-dirty", { state: true });
+await writePair("states", "git-status-conflict", { state: true });
+await writePair("states", "git-status-norepo", { state: true });
+for (const name of ["git-diff", "git-review", "git-test", "git-commit-prep"]) await writePair("states", `${name}-busy`, { state: true, busy: true });
+for (let index = 1; index <= 6; index++) await writePair("states", `git-focus-${index}-selected`, { state: true, highlight: true });
 console.log(`✔ Generated ${Object.keys(glyphs).length} Codex icon pairs`);
