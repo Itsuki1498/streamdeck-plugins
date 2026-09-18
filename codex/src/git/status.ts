@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { basename } from "node:path";
+import { basename, relative } from "node:path";
 import { promisify } from "node:util";
 import type { GitSnapshot, GitState } from "./types.js";
 
@@ -98,7 +98,7 @@ async function runGit(cwd: string, args: string[]): Promise<string> {
 export function gitStatusTitle(snapshot: GitSnapshot): string {
   if (snapshot.state === "no-repo") return "GIT\nNO REPO";
   if (snapshot.state === "error") return "GIT\nERROR";
-  const repository = compactGitLabel(snapshot.repositoryName ?? "GIT");
+  const repository = compactGitLabel(`${snapshot.repositoryName ?? "GIT"}/${gitWorkspaceScope(snapshot)}`);
   const branch = compactGitLabel(snapshot.branch ?? "DETACHED");
   if (snapshot.state === "conflict") return `${repository}\n${branch}\nCONFLICT ${snapshot.conflictFiles}`;
   if (snapshot.state === "clean") return `${repository}\n${branch}\nCLEAN ↑${snapshot.ahead} ↓${snapshot.behind}`;
@@ -107,4 +107,10 @@ export function gitStatusTitle(snapshot: GitSnapshot): string {
 
 function compactGitLabel(value: string, maxLength = 18): string {
   return value.length <= maxLength ? value : `…${value.slice(-(maxLength - 1))}`;
+}
+
+function gitWorkspaceScope(snapshot: GitSnapshot): string {
+  if (!snapshot.repositoryPath || !snapshot.workspacePath) return "ROOT";
+  const scope = relative(snapshot.repositoryPath, snapshot.workspacePath).replaceAll("\\", "/");
+  return scope && scope !== "." ? scope : "ROOT";
 }

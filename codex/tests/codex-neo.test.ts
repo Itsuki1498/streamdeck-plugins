@@ -77,7 +77,7 @@ test("parses Git porcelain v2 status into dashboard counters", () => {
     ahead: snapshot.ahead,
     behind: snapshot.behind,
   }, { modified: 2, staged: 1, untracked: 1, conflicts: 1, ahead: 2, behind: 1 });
-  assert.match(gitStatusTitle(snapshot), /^project\nmain\n/);
+  assert.match(gitStatusTitle(snapshot), /^project\/ROOT\nmain\n/);
   assert.match(gitStatusTitle(snapshot), /CONFLICT 1/);
 });
 
