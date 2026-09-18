@@ -1,6 +1,19 @@
 node_modules/
 .DS_Store
 
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+.npmrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.mobileprovision
+*.cer
+*.crt
+
 # Generated plugin output
 codex/plugin/com.itsuki.codex-neo-deck.sdPlugin/bin/
 codex/release/
@@ -9,3 +22,4 @@ musescore/release/
 
 # Runtime logs
 musescore/plugin/com.codex.musescore-control.sdPlugin/logs/
+codex/plugin/com.itsuki.codex-neo-deck.sdPlugin/logs/
