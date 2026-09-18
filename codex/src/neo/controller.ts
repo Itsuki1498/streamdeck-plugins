@@ -3,7 +3,7 @@ import { reconcileApprovalQueue, selectNextApproval, type ApprovalQueueState } f
 import { actionKeyState, completedWorkingTaskCount, statusKeyState, workingTaskCount } from "../codex/status.js";
 import type { CodexSnapshot, CodexWorkspace } from "../codex/types.js";
 import { GitAdapter, type CodexGitCommand } from "../git/adapter.js";
-import { gitStatusTitle, gitWorkspaceScopeTitle } from "../git/status.js";
+import { gitStatusTitle, gitWorkspaceDisplayTitle, gitWorkspaceScopeTitle } from "../git/status.js";
 import type { GitSnapshot } from "../git/types.js";
 import type { StreamDeckAction } from "../streamdeck-runtime.js";
 import { truncateForInfoBar } from "../codex/sanitize.js";
@@ -32,6 +32,7 @@ export class NeoController {
   private gitSnapshot: GitSnapshot = { state: "no-repo", modifiedFiles: 0, stagedFiles: 0, untrackedFiles: 0, conflictFiles: 0, ahead: 0, behind: 0, observedAt: 0 };
   private gitWorkspaces: GitWorkspaceContext[] = [];
   private selectedGitWorkspacePath?: string;
+  private statusWorkspaceIndex = -1;
   private readonly gitActionStates = new Map<string, "ready" | "running" | "ok" | "fail">();
   private readonly gitActionResults = new Map<string, string>();
   private readonly gitNoticeTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -62,6 +63,7 @@ export class NeoController {
     this.gitAdapter.close();
     this.gitWorkspaces = [];
     this.selectedGitWorkspacePath = undefined;
+    this.statusWorkspaceIndex = -1;
     this.gitSnapshot = { state: "no-repo", modifiedFiles: 0, stagedFiles: 0, untrackedFiles: 0, conflictFiles: 0, ahead: 0, behind: 0, observedAt: 0 };
   }
 
@@ -115,9 +117,12 @@ export class NeoController {
           this.selectGitWorkspace(command);
           await this.renderAll();
           break;
+        case "status":
+          this.advanceStatusWorkspace();
+          await this.renderAll();
+          break;
         case "usage-five-hour":
         case "usage-weekly":
-        case "status":
         case "infobar":
         case "git-status":
           break;
@@ -137,7 +142,13 @@ export class NeoController {
       const next = await this.adapter.snapshot();
       if (completedWorkingTaskCount(this.snapshot.slots, next.slots) > 0) this.startCompletionPulse();
       this.snapshot = next;
+      const previousStatusPath = this.statusWorkspaceIndex >= 0
+        ? this.gitWorkspaces[this.statusWorkspaceIndex]?.snapshot.workspacePath
+        : undefined;
       this.gitWorkspaces = await this.readGitWorkspaces(next);
+      this.statusWorkspaceIndex = previousStatusPath
+        ? this.gitWorkspaces.findIndex((context) => context.snapshot.workspacePath === previousStatusPath)
+        : -1;
       const selected = this.gitWorkspaces.find((context) => context.snapshot.workspacePath === this.selectedGitWorkspacePath)
         ?? this.gitWorkspaces.find((context) => context.observation.threadId === next.activeThreadId)
         ?? this.gitWorkspaces[0];
@@ -167,7 +178,7 @@ export class NeoController {
     let title = controller === "Neo"
       ? selected
         ? renderApprovalInfoBar(selected, this.queue.selectedIndex, this.queue.approvals.length)
-        : renderInfoBar(this.snapshot, this.notice)
+        : renderInfoBar(this.snapshot, this.notice, this.statusWorkspaceInfo())
       : "";
     if (action.isKey()) {
       let state = 0;
@@ -176,7 +187,10 @@ export class NeoController {
         const pulse = Date.now() < this.completionPulseUntil && this.completionPulsePhase;
         const count = workingTaskCount(this.snapshot.slots);
         await this.setImageIfChanged(action, `status:${state}:${count}:${pulse}`, renderStatusImage(this.snapshot, pulse), state);
-        title = "";
+        const workspace = this.statusWorkspaceInfo();
+        title = workspace
+          ? `${gitWorkspaceDisplayTitle(workspace.snapshot)}\n${workspace.snapshot.state.toUpperCase()} ${workspace.index + 1}/${workspace.total}`
+          : "";
       } else if (command === "usage-five-hour" || command === "usage-weekly") {
         const kind = command === "usage-five-hour" ? "five-hour" : "weekly";
         const window = kind === "five-hour" ? this.snapshot.usage?.fiveHour : this.snapshot.usage?.weekly;
@@ -263,6 +277,23 @@ export class NeoController {
     if (!context) return;
     this.selectedGitWorkspacePath = context.snapshot.workspacePath;
     this.gitSnapshot = context.snapshot;
+    this.statusWorkspaceIndex = gitFocusIndex(command);
+  }
+
+  private advanceStatusWorkspace(): void {
+    if (!this.gitWorkspaces.length) return;
+    this.statusWorkspaceIndex = (this.statusWorkspaceIndex + 1) % this.gitWorkspaces.length;
+    const context = this.gitWorkspaces[this.statusWorkspaceIndex];
+    if (!context) return;
+    this.selectedGitWorkspacePath = context.snapshot.workspacePath;
+    this.gitSnapshot = context.snapshot;
+  }
+
+  private statusWorkspaceInfo() {
+    const context = this.gitWorkspaces[this.statusWorkspaceIndex];
+    return context
+      ? { index: this.statusWorkspaceIndex, total: this.gitWorkspaces.length, snapshot: context.snapshot }
+      : undefined;
   }
 
   private async setImageIfChanged(action: DisplayAction, signature: string, image: string, state: number): Promise<void> {

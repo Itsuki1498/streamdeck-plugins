@@ -24,6 +24,7 @@ try {
       `${pluginDir}/bin/*.map`,
       `${pluginDir}/logs/`,
       `${pluginDir}/logs/*`,
+      "*.DS_Store",
     ], {
       cwd: pluginRoot,
       stdio: "inherit",

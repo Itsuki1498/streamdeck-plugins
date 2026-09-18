@@ -8,7 +8,7 @@ import { sanitizeText, summaryHash } from "../src/codex/sanitize.ts";
 import { reduceRolloutEvents } from "../src/codex/local-status.ts";
 import { mergeLocalSlots } from "../src/codex/slot-merge.ts";
 import { imageForState, normalizeCustomImageSettings } from "../src/neo/custom-image.ts";
-import { gitStatusTitle, parseGitStatus } from "../src/git/status.ts";
+import { gitStatusTitle, gitWorkspaceDisplayTitle, parseGitStatus } from "../src/git/status.ts";
 import type { PendingApproval } from "../src/codex/types.ts";
 
 const approval = (threadId: string, summary: string): PendingApproval => ({
@@ -78,6 +78,7 @@ test("parses Git porcelain v2 status into dashboard counters", () => {
     behind: snapshot.behind,
   }, { modified: 2, staged: 1, untracked: 1, conflicts: 1, ahead: 2, behind: 1 });
   assert.match(gitStatusTitle(snapshot), /^ROOT\nCONFLICT$/);
+  assert.equal(gitWorkspaceDisplayTitle({ ...snapshot, workspacePath: "/repo/project/codex" }), "project/codex");
 });
 
 test("renders usage keys with a standard sans-serif raster image", () => {

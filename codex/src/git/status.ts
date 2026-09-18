@@ -108,6 +108,12 @@ export function gitWorkspaceScopeTitle(snapshot: GitSnapshot): string {
   return compactGitLabel(gitWorkspaceScope(snapshot), 14);
 }
 
+export function gitWorkspaceDisplayTitle(snapshot: GitSnapshot): string {
+  if (!snapshot.repositoryName) return "NO REPO";
+  const scope = gitWorkspaceScopeTitle(snapshot);
+  return compactGitLabel(scope === "ROOT" ? snapshot.repositoryName : `${snapshot.repositoryName}/${scope}`, 24);
+}
+
 function compactGitLabel(value: string, maxLength = 18): string {
   return value.length <= maxLength ? value : `…${value.slice(-(maxLength - 1))}`;
 }
