@@ -5,7 +5,7 @@ import { classifyWindowMinutes, formatResetCompact } from "../src/codex/usage.ts
 import { renderStatusImage, renderUsageImage } from "../src/neo/usage-image.ts";
 import { reconcileApprovalQueue, removeApproval, selectNextApproval, isApprovalActionSafe, type ApprovalQueueState } from "../src/codex/queue.ts";
 import { sanitizeText, summaryHash } from "../src/codex/sanitize.ts";
-import { reduceRolloutEvents } from "../src/codex/local-status.ts";
+import { reduceRolloutEvents, rolloutThreadId } from "../src/codex/local-status.ts";
 import { mergeLocalSlots } from "../src/codex/slot-merge.ts";
 import { imageForState, normalizeCustomImageSettings } from "../src/neo/custom-image.ts";
 import { gitStatusTitle, gitWorkspaceDisplayTitle, parseGitStatus } from "../src/git/status.ts";
@@ -41,6 +41,17 @@ test("reduces Codex rollout events into live work states", () => {
     { ...base, type: "event_msg", payload: { type: "task_started" } },
     { ...base, type: "event_msg", payload: { type: "turn_complete" } },
   ]), "complete");
+});
+
+test("recognizes forked Codex rollout filenames by their session id", () => {
+  assert.equal(
+    rolloutThreadId("/tmp/rollout-2026-09-18T19-17-37-01a0b398-c8fe-7491-b4e4-e90be4a730e8_01a0b405-8d88-7ce0-ad89-d2d956a48b17.jsonl"),
+    "01a0b398-c8fe-7491-b4e4-e90be4a730e8",
+  );
+  assert.equal(
+    rolloutThreadId("/tmp/rollout-2026-09-18T19-17-37-01a0b398-c8fe-7491-b4e4-e90be4a730e8.jsonl"),
+    "01a0b398-c8fe-7491-b4e4-e90be4a730e8",
+  );
 });
 
 test("classifies usage windows", () => {

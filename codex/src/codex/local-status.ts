@@ -26,7 +26,7 @@ const ABORT_EVENT_TYPES = new Set(["task_aborted", "turn_aborted", "task_error"]
 export type RolloutEvent = {
   timestamp?: string;
   type?: string;
-  payload?: { type?: unknown; name?: unknown; status?: unknown; level?: unknown; cwd?: unknown };
+  payload?: { type?: unknown; name?: unknown; status?: unknown; level?: unknown; cwd?: unknown; [key: string]: unknown };
 };
 
 export type LocalThreadObservation = {
@@ -156,6 +156,10 @@ function workspacePathFrom(events: readonly RolloutEvent[]): string | undefined 
   return undefined;
 }
 
+export function rolloutThreadId(file: string): string | undefined {
+  return file.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:_|\.jsonl$)/i)?.[1];
+}
+
 export class LocalCodexStatus {
   private readonly cache = new Map<string, { observedAt: number; status: CodexStatus; workspacePath?: string }>();
 
@@ -166,9 +170,9 @@ export class LocalCodexStatus {
   observe(now = Date.now()): LocalThreadObservation[] {
     try {
       const files = sessionFiles(join(homedir(), ".codex", "sessions"));
-      const observations: LocalThreadObservation[] = [];
+      const observationsByThread = new Map<string, LocalThreadObservation>();
       for (const file of files.slice(0, MAX_THREADS)) {
-        const threadId = file.match(/rollout-[^/]*-([0-9a-f-]{36})\.jsonl$/i)?.[1];
+        const threadId = rolloutThreadId(file);
         if (!threadId) continue;
         const tail = readTail(file);
         if (!tail) continue;
@@ -181,9 +185,20 @@ export class LocalCodexStatus {
           ? cached.workspacePath
           : workspacePathFrom(events ?? []);
         this.cache.set(file, { observedAt: tail.observedAt, status, workspacePath });
-        observations.push({ threadId, status, observedAt: tail.observedAt, ...(workspacePath ? { workspacePath } : {}) });
+        const previous = observationsByThread.get(threadId);
+        const observation = {
+          threadId,
+          status,
+          observedAt: tail.observedAt,
+          ...(workspacePath ?? previous?.workspacePath ? { workspacePath: workspacePath ?? previous?.workspacePath } : {}),
+        } satisfies LocalThreadObservation;
+        if (!previous || observation.observedAt >= previous.observedAt) {
+          observationsByThread.set(threadId, observation);
+        } else if (!previous.workspacePath && workspacePath) {
+          observationsByThread.set(threadId, { ...previous, workspacePath });
+        }
       }
-      return observations;
+      return [...observationsByThread.values()].sort((left, right) => right.observedAt - left.observedAt);
     } catch {
       return [];
     }
