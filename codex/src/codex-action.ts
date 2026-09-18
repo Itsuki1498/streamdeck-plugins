@@ -10,17 +10,6 @@ const commands = {
   "com.itsuki.codex-neo-deck.status": "status",
   "com.itsuki.codex-neo-deck.infobar": "infobar",
   "com.itsuki.codex-neo-deck.control": "infobar",
-  "com.itsuki.codex-neo-deck.git-status": "git-status",
-  "com.itsuki.codex-neo-deck.git-diff": "git-diff",
-  "com.itsuki.codex-neo-deck.git-review": "git-review",
-  "com.itsuki.codex-neo-deck.git-test": "git-test",
-  "com.itsuki.codex-neo-deck.git-commit-prep": "git-commit-prep",
-  "com.itsuki.codex-neo-deck.git-focus-1": "git-focus-1",
-  "com.itsuki.codex-neo-deck.git-focus-2": "git-focus-2",
-  "com.itsuki.codex-neo-deck.git-focus-3": "git-focus-3",
-  "com.itsuki.codex-neo-deck.git-focus-4": "git-focus-4",
-  "com.itsuki.codex-neo-deck.git-focus-5": "git-focus-5",
-  "com.itsuki.codex-neo-deck.git-focus-6": "git-focus-6",
 } satisfies Record<string, ControlCommand>;
 
 function commandFor(message: StreamDeckMessage): ControlCommand | undefined {

@@ -47,18 +47,9 @@ export type CodexSlot = {
   selected?: boolean;
 };
 
-export type CodexWorkspace = {
-  threadId: string;
-  status: CodexStatus;
-  observedAt: number;
-  workspacePath?: string;
-};
-
 export type CodexSnapshot = {
   connected: boolean;
   activeThreadId?: string;
-  workspacePath?: string;
-  workspaces?: CodexWorkspace[];
   slots: CodexSlot[];
   approvals: PendingApproval[];
   status: CodexStatus | "offline";

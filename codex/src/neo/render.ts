@@ -2,13 +2,10 @@ import { formatPercent } from "../codex/usage.js";
 import { workingTaskCount } from "../codex/status.js";
 import { truncateForInfoBar } from "../codex/sanitize.js";
 import type { CodexSnapshot, PendingApproval } from "../codex/types.js";
-import { gitWorkspaceDisplayTitle } from "../git/status.js";
-import type { GitSnapshot } from "../git/types.js";
 
 export type ControllerNotice = "" | "APPROVAL CHANGED" | "APPROVE FAILED" | "REJECT FAILED";
-export type InfoBarWorkspace = { index: number; total: number; snapshot: GitSnapshot };
 
-export function renderInfoBar(snapshot: CodexSnapshot, notice: ControllerNotice = "", workspace?: InfoBarWorkspace, now = Date.now()): string {
+export function renderInfoBar(snapshot: CodexSnapshot, notice: ControllerNotice = ""): string {
   if (notice) return `${notice}\nWaiting for update`;
   if (!snapshot.connected) return "CODEX CONNECTION LOST\nStart / restart Codex";
   const approval = snapshot.approvals[0];
@@ -19,19 +16,7 @@ export function renderInfoBar(snapshot: CodexSnapshot, notice: ControllerNotice 
   const first = snapshot.usage?.fiveHour?.remainingPercent;
   const second = snapshot.usage?.weekly?.remainingPercent;
   const state = working ? `${working} WORKING` : "READY";
-  if (workspace) {
-    const gitState = workspace.snapshot.state === "no-repo" ? "NO REPO" : workspace.snapshot.state.toUpperCase();
-    const line = `GIT ${workspace.index + 1}/${workspace.total} · ${gitWorkspaceDisplayTitle(workspace.snapshot)} · ${gitState}`;
-    return `CODEX · ${state}\n${scrollInfoBarLine(line, 30, now)}`;
-  }
   return `CODEX · ${state}\n5H ${formatPercent(first)}   WEEK ${formatPercent(second)}`;
-}
-
-function scrollInfoBarLine(value: string, width: number, now: number): string {
-  if (value.length <= width) return value;
-  const track = `${value}   •   `;
-  const offset = Math.floor(now / 400) % track.length;
-  return (track + track).slice(offset, offset + width);
 }
 
 export function renderApprovalInfoBar(approval: PendingApproval | undefined, index: number, total: number): string {

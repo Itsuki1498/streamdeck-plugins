@@ -42,6 +42,20 @@ function escapeSvgText(value: string): string {
   })[character] ?? character);
 }
 
+function formatResetCompact(timestamp: number | undefined, now: number): string | undefined {
+  if (!timestamp || !Number.isFinite(timestamp)) return undefined;
+  const remainingMinutes = Math.max(0, Math.round((timestamp - now) / 60000));
+  if (remainingMinutes < 60) return `${remainingMinutes}m`;
+  if (remainingMinutes < 1440) {
+    const hours = Math.floor(remainingMinutes / 60);
+    const minutes = remainingMinutes % 60;
+    return minutes ? `${hours}h${minutes}m` : `${hours}h`;
+  }
+  const days = Math.floor(remainingMinutes / 1440);
+  const hours = Math.floor((remainingMinutes % 1440) / 60);
+  return hours ? `${days}d${hours}h` : `${days}d`;
+}
+
 function svgData(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
@@ -194,16 +208,17 @@ function completionFrame(): string {
   return `<rect x="2.5" y="2.5" width="67" height="67" rx="12" fill="none" stroke="#020617" stroke-opacity=".92" stroke-width="6" stroke-linejoin="round"/><rect x="3.5" y="3.5" width="65" height="65" rx="11" fill="none" stroke="#f8fafc" stroke-width="3.5" stroke-linejoin="round"/><rect x="6" y="6" width="60" height="60" rx="8.5" fill="none" stroke="#34d399" stroke-width="1.5" stroke-linejoin="round"/>`;
 }
 
-function usageSvg(window: UsageWindow | undefined, kind: "five-hour" | "weekly", backgroundImage?: string): string {
+function usageSvg(window: UsageWindow | undefined, kind: "five-hour" | "weekly", now: number, backgroundImage?: string): string {
   const remaining = window ? Math.min(100, Math.max(0, window.remainingPercent)) : 0;
   const color = remaining <= 20 ? "#f87171" : remaining <= 50 ? "#fbbf24" : "#34d399";
   const label = kind === "five-hour" ? "5H" : "WEEK";
   const percentage = window ? `${Math.round(remaining)}%` : "--%";
+  const reset = formatResetCompact(window?.resetsAt, now) ?? "--";
   const fillWidth = Math.round(52 * remaining / 100);
   const backdrop = backgroundImage
     ? `<image href="${backgroundImage}" x="0" y="0" width="72" height="72" preserveAspectRatio="xMidYMid slice"/>`
     : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 72 72">${backdrop}${plate("#1e2942")}${text(label, 36, 19, 13, 900, "#ffffff")}<rect x="10" y="26" width="52" height="13" rx="6.5" fill="#020617" fill-opacity=".78" stroke="#f8fafc" stroke-opacity=".65" stroke-width=".8"/>${fillWidth > 0 ? `<rect x="10" y="26" width="${fillWidth}" height="13" rx="6.5" fill="${color}"/>` : ""}${text(percentage, 36, 60, 23, 900, "#ffffff")}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 72 72">${backdrop}${plate("#1e2942")}${text(label, 36, 16, 13, 900, "#ffffff")}<rect x="10" y="22" width="52" height="13" rx="6.5" fill="#020617" fill-opacity=".78" stroke="#f8fafc" stroke-opacity=".65" stroke-width=".8"/>${fillWidth > 0 ? `<rect x="10" y="22" width="${fillWidth}" height="13" rx="6.5" fill="${color}"/>` : ""}${text(percentage, 36, 54, 21, 900, "#ffffff")}${text(`↻ ${reset}`, 36, 68, 8, 800, "#e2e8f0")}</svg>`;
 }
 
 export function usageImageSignature(window: UsageWindow | undefined, kind: "five-hour" | "weekly", now = Date.now()): string {
@@ -212,11 +227,11 @@ export function usageImageSignature(window: UsageWindow | undefined, kind: "five
   return `${kind}:${Math.round(window.remainingPercent)}:${resetMinute}`;
 }
 
-export function renderUsageImage(window: UsageWindow | undefined, kind: "five-hour" | "weekly", _now = Date.now(), backgroundImage?: string): string {
+export function renderUsageImage(window: UsageWindow | undefined, kind: "five-hour" | "weekly", now = Date.now(), backgroundImage?: string): string {
   // Keep the SVG transparent. Quick Look rasterization on macOS flattens
   // transparent SVG pixels to white, which hides the user's Stream Deck
   // background when this image is sent to a key.
-  return svgData(usageSvg(window, kind, backgroundImage));
+  return svgData(usageSvg(window, kind, now, backgroundImage));
 }
 
 export function renderStatusPulseImage(image: string, pulse: boolean): string {

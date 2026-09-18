@@ -8,7 +8,6 @@ import { sanitizeText, summaryHash } from "../src/codex/sanitize.ts";
 import { reduceRolloutEvents, rolloutThreadId } from "../src/codex/local-status.ts";
 import { mergeLocalSlots } from "../src/codex/slot-merge.ts";
 import { imageForState, normalizeCustomImageSettings } from "../src/neo/custom-image.ts";
-import { gitStatusTitle, gitWorkspaceDisplayTitle, parseGitStatus } from "../src/git/status.ts";
 import type { PendingApproval } from "../src/codex/types.ts";
 
 const approval = (threadId: string, summary: string): PendingApproval => ({
@@ -67,31 +66,6 @@ test("formats compact reset times for the usage key", () => {
   assert.equal(formatResetCompact(now + (2 * 1440 + 3 * 60) * 60_000, now), "2d3h");
 });
 
-test("parses Git porcelain v2 status into dashboard counters", () => {
-  const snapshot = parseGitStatus([
-    "# branch.head main",
-    "# branch.upstream origin/main",
-    "# branch.ab +2 -1",
-    "1 .M N... 100644 100644 100644 abc def file.ts",
-    "1 M. N... 100644 100644 100644 abc def staged.ts",
-    "u UU N... 100644 100644 100644 100644 abc def ghi conflict.ts",
-    "? new.ts",
-  ].join("\n"), "/repo/project");
-  assert.equal(snapshot.state, "conflict");
-  assert.equal(snapshot.repositoryName, "project");
-  assert.equal(snapshot.branch, "main");
-  assert.deepEqual({
-    modified: snapshot.modifiedFiles,
-    staged: snapshot.stagedFiles,
-    untracked: snapshot.untrackedFiles,
-    conflicts: snapshot.conflictFiles,
-    ahead: snapshot.ahead,
-    behind: snapshot.behind,
-  }, { modified: 2, staged: 1, untracked: 1, conflicts: 1, ahead: 2, behind: 1 });
-  assert.match(gitStatusTitle(snapshot), /^ROOT\nCONFLICT$/);
-  assert.equal(gitWorkspaceDisplayTitle({ ...snapshot, workspacePath: "/repo/project/codex" }), "project/codex");
-});
-
 test("renders usage keys with a standard sans-serif raster image", () => {
   const now = Date.now();
   const image = renderUsageImage({ kind: "five-hour", usedPercent: 18, remainingPercent: 82, resetsAt: now + 90 * 60_000 }, "five-hour", now);
@@ -101,8 +75,10 @@ test("renders usage keys with a standard sans-serif raster image", () => {
 });
 
 test("renders usage colors and status numbers without icon or full-canvas plates", () => {
+  const now = Date.now();
   const svg = (image: string): string => decodeURIComponent(image.slice(image.indexOf(",") + 1));
-  assert.match(svg(renderUsageImage({ kind: "weekly", usedPercent: 18, remainingPercent: 82 }, "weekly")), /#34d399/);
+  assert.match(svg(renderUsageImage({ kind: "weekly", usedPercent: 18, remainingPercent: 82, resetsAt: now + 42 * 60_000 }, "weekly", now)), /#34d399/);
+  assert.match(svg(renderUsageImage({ kind: "weekly", usedPercent: 18, remainingPercent: 82, resetsAt: now + 42 * 60_000 }, "weekly", now)), /42m/);
   assert.match(svg(renderUsageImage({ kind: "weekly", usedPercent: 60, remainingPercent: 40 }, "weekly")), /#fbbf24/);
   assert.match(svg(renderUsageImage({ kind: "weekly", usedPercent: 85, remainingPercent: 15 }, "weekly")), /#f87171/);
   assert.doesNotMatch(svg(renderUsageImage({ kind: "weekly", usedPercent: 18, remainingPercent: 82 }, "weekly")), /<image\s/);

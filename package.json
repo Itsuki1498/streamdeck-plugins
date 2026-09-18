@@ -2,7 +2,7 @@
   "name": "codex-neo-deck",
   "version": "0.1.0",
   "private": true,
-  "description": "Stream Deck Neo plugin for Codex approvals, status, usage, and Git workspace context.",
+  "description": "Stream Deck Neo plugin for Codex approvals, status, and usage.",
   "type": "module",
   "scripts": {
     "build": "npm run build:codex",

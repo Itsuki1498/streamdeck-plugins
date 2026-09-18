@@ -100,16 +100,10 @@ export class CodexConnection {
     // not duplicated while a distinct active task is still counted.
     const localObservations = this.localStatus.observe();
     const mergedSlots = mergeLocalSlots(slots, localObservations);
-    const activeObservation = raw.activeThreadId
-      ? localObservations.find((observation) => observation.threadId === raw.activeThreadId)
-      : undefined;
-    const workspacePath = activeObservation?.workspacePath ?? localObservations.find((observation) => observation.workspacePath)?.workspacePath;
     const windows = (raw.usage?.windows ?? []).filter((window) => window.kind === "five-hour" || window.kind === "weekly");
     return {
       connected: true,
       activeThreadId: raw.activeThreadId,
-      ...(workspacePath ? { workspacePath } : {}),
-      workspaces: localObservations,
       approvals: (raw.approvals ?? []).map((approval) => ({
         ...approval,
         summary: sanitizeText(approval.summary, 180),
