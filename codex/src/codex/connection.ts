@@ -109,6 +109,7 @@ export class CodexConnection {
       connected: true,
       activeThreadId: raw.activeThreadId,
       ...(workspacePath ? { workspacePath } : {}),
+      workspaces: localObservations,
       approvals: (raw.approvals ?? []).map((approval) => ({
         ...approval,
         summary: sanitizeText(approval.summary, 180),

@@ -1,9 +1,9 @@
 import { CodexAdapter } from "../codex/adapter.js";
 import { reconcileApprovalQueue, selectNextApproval, type ApprovalQueueState } from "../codex/queue.js";
 import { actionKeyState, completedWorkingTaskCount, statusKeyState, workingTaskCount } from "../codex/status.js";
-import type { CodexSnapshot } from "../codex/types.js";
+import type { CodexSnapshot, CodexWorkspace } from "../codex/types.js";
 import { GitAdapter, type CodexGitCommand } from "../git/adapter.js";
-import { gitStatusTitle } from "../git/status.js";
+import { gitStatusTitle, gitWorkspaceScopeTitle } from "../git/status.js";
 import type { GitSnapshot } from "../git/types.js";
 import type { StreamDeckAction } from "../streamdeck-runtime.js";
 import { truncateForInfoBar } from "../codex/sanitize.js";
@@ -11,8 +11,12 @@ import { renderApprovalInfoBar, renderInfoBar, type ControllerNotice } from "./r
 import { renderStatusImage, renderUsageImage } from "./usage-image.js";
 
 export type ControlCommand = "approve" | "reject" | "next" | "usage-five-hour" | "usage-weekly" | "status" | "infobar"
-  | "git-status" | "git-diff" | "git-review" | "git-test" | "git-commit-prep";
+  | "git-status" | "git-diff" | "git-review" | "git-test" | "git-commit-prep"
+  | "git-focus-1" | "git-focus-2" | "git-focus-3" | "git-focus-4" | "git-focus-5" | "git-focus-6";
 type GitActionCommand = "git-diff" | "git-review" | "git-test" | "git-commit-prep";
+type GitFocusCommand = "git-focus-1" | "git-focus-2" | "git-focus-3" | "git-focus-4" | "git-focus-5" | "git-focus-6";
+type GitWorkspaceContext = { observation: CodexWorkspace; snapshot: GitSnapshot };
+const maxGitFocusButtons = 6;
 
 type DisplayAction = StreamDeckAction;
 
@@ -26,6 +30,8 @@ export class NeoController {
   private queue: ApprovalQueueState = { approvals: [], selectedIndex: 0 };
   private snapshot: CodexSnapshot = { connected: false, slots: [], approvals: [], status: "offline", observedAt: 0 };
   private gitSnapshot: GitSnapshot = { state: "no-repo", modifiedFiles: 0, stagedFiles: 0, untrackedFiles: 0, conflictFiles: 0, ahead: 0, behind: 0, observedAt: 0 };
+  private gitWorkspaces: GitWorkspaceContext[] = [];
+  private selectedGitThreadId?: string;
   private readonly gitActionStates = new Map<string, "ready" | "running" | "ok" | "fail">();
   private readonly gitActionResults = new Map<string, string>();
   private readonly gitNoticeTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -53,6 +59,9 @@ export class NeoController {
     this.gitActionStates.clear();
     this.gitActionResults.clear();
     this.adapter.close();
+    this.gitAdapter.close();
+    this.gitWorkspaces = [];
+    this.selectedGitThreadId = undefined;
     this.gitSnapshot = { state: "no-repo", modifiedFiles: 0, stagedFiles: 0, untrackedFiles: 0, conflictFiles: 0, ahead: 0, behind: 0, observedAt: 0 };
   }
 
@@ -97,6 +106,15 @@ export class NeoController {
         case "git-commit-prep":
           await this.runGitCodexAction(command, action);
           break;
+        case "git-focus-1":
+        case "git-focus-2":
+        case "git-focus-3":
+        case "git-focus-4":
+        case "git-focus-5":
+        case "git-focus-6":
+          this.selectGitWorkspace(command);
+          await this.renderAll();
+          break;
         case "usage-five-hour":
         case "usage-weekly":
         case "status":
@@ -119,12 +137,19 @@ export class NeoController {
       const next = await this.adapter.snapshot();
       if (completedWorkingTaskCount(this.snapshot.slots, next.slots) > 0) this.startCompletionPulse();
       this.snapshot = next;
-      this.gitSnapshot = await this.gitAdapter.snapshot(next.workspacePath);
+      this.gitWorkspaces = await this.readGitWorkspaces(next);
+      const selected = this.gitWorkspaces.find((context) => context.observation.threadId === this.selectedGitThreadId)
+        ?? this.gitWorkspaces.find((context) => context.observation.threadId === next.activeThreadId)
+        ?? this.gitWorkspaces[0];
+      this.selectedGitThreadId = selected?.observation.threadId;
+      this.gitSnapshot = selected?.snapshot ?? await this.gitAdapter.snapshot(next.workspacePath);
       this.queue = reconcileApprovalQueue(this.queue, next.approvals);
       this.notice = "";
     } catch {
       // Never keep approval data actionable after a bridge failure.
       this.snapshot = { connected: false, slots: [], approvals: [], status: "offline", observedAt: Date.now() };
+      this.gitWorkspaces = [];
+      this.selectedGitThreadId = undefined;
       this.gitSnapshot = await this.gitAdapter.snapshot(undefined);
       this.queue = { approvals: [], selectedIndex: 0 };
     } finally {
@@ -164,6 +189,10 @@ export class NeoController {
       } else if (command === "git-status") {
         state = this.gitSnapshot.state === "clean" || this.gitSnapshot.state === "no-repo" ? 0 : 1;
         title = gitStatusTitle(this.gitSnapshot);
+      } else if (isGitFocusCommand(command)) {
+        const context = this.gitWorkspaces[gitFocusIndex(command)];
+        state = context?.observation.threadId === this.selectedGitThreadId ? 1 : 0;
+        title = context ? gitWorkspaceScopeTitle(context.snapshot) : "";
       } else if (isGitCodexCommand(command)) {
         const status = this.gitActionStates.get(action.id) ?? "ready";
         state = status === "running" ? 1 : 0;
@@ -182,9 +211,9 @@ export class NeoController {
     this.gitActionResults.delete(action.id);
     await this.renderAll();
     try {
-      const repositoryPath = this.gitSnapshot.repositoryPath;
-      if (!repositoryPath) throw new Error(this.gitSnapshot.error ?? "No Git repository is available.");
-      const output = await this.gitAdapter.runCodex(command.slice(4) as CodexGitCommand, repositoryPath);
+      const workingDirectory = this.gitSnapshot.workspacePath ?? this.gitSnapshot.repositoryPath;
+      if (!workingDirectory) throw new Error(this.gitSnapshot.error ?? "No Git repository is available.");
+      const output = await this.gitAdapter.runCodex(command.slice(4) as CodexGitCommand, workingDirectory);
       this.gitActionStates.set(action.id, "ok");
       this.gitActionResults.set(action.id, summarizeGitResult(output));
       await action.showOk();
@@ -204,6 +233,35 @@ export class NeoController {
       void this.renderAll();
     }, 4500);
     this.gitNoticeTimers.set(action.id, timer);
+  }
+
+  private async readGitWorkspaces(snapshot: CodexSnapshot): Promise<GitWorkspaceContext[]> {
+    const observations = [...(snapshot.workspaces ?? [])];
+    if (snapshot.activeThreadId && snapshot.workspacePath && !observations.some((observation) => observation.threadId === snapshot.activeThreadId)) {
+      observations.unshift({
+        threadId: snapshot.activeThreadId,
+        status: snapshot.status === "offline" ? "idle" : snapshot.status,
+        observedAt: snapshot.observedAt,
+        workspacePath: snapshot.workspacePath,
+      });
+    }
+    const unique = new Map<string, CodexWorkspace>();
+    for (const observation of observations) {
+      if (unique.has(observation.threadId)) continue;
+      unique.set(observation.threadId, observation);
+      if (unique.size >= maxGitFocusButtons) break;
+    }
+    return Promise.all([...unique.values()].map(async (observation) => ({
+      observation,
+      snapshot: await this.gitAdapter.snapshot(observation.workspacePath),
+    })));
+  }
+
+  private selectGitWorkspace(command: GitFocusCommand): void {
+    const context = this.gitWorkspaces[gitFocusIndex(command)];
+    if (!context) return;
+    this.selectedGitThreadId = context.observation.threadId;
+    this.gitSnapshot = context.snapshot;
   }
 
   private async setImageIfChanged(action: DisplayAction, signature: string, image: string, state: number): Promise<void> {
@@ -237,6 +295,14 @@ function summarizeGitResult(output: string): string {
 
 function isGitCodexCommand(command: ControlCommand): command is GitActionCommand {
   return command === "git-diff" || command === "git-review" || command === "git-test" || command === "git-commit-prep";
+}
+
+function isGitFocusCommand(command: ControlCommand): command is GitFocusCommand {
+  return command.startsWith("git-focus-");
+}
+
+function gitFocusIndex(command: GitFocusCommand): number {
+  return Number.parseInt(command.slice("git-focus-".length), 10) - 1;
 }
 
 function gitActionLabel(command: GitActionCommand): string {

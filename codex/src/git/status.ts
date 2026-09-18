@@ -98,11 +98,14 @@ async function runGit(cwd: string, args: string[]): Promise<string> {
 export function gitStatusTitle(snapshot: GitSnapshot): string {
   if (snapshot.state === "no-repo") return "GIT\nNO REPO";
   if (snapshot.state === "error") return "GIT\nERROR";
-  const repository = compactGitLabel(`${snapshot.repositoryName ?? "GIT"}/${gitWorkspaceScope(snapshot)}`);
-  const branch = compactGitLabel(snapshot.branch ?? "DETACHED");
-  if (snapshot.state === "conflict") return `${repository}\n${branch}\nCONFLICT ${snapshot.conflictFiles}`;
-  if (snapshot.state === "clean") return `${repository}\n${branch}\nCLEAN ↑${snapshot.ahead} ↓${snapshot.behind}`;
-  return `${repository}\n${branch}\nM${snapshot.modifiedFiles} S${snapshot.stagedFiles} U${snapshot.untrackedFiles}`;
+  const scope = gitWorkspaceScopeTitle(snapshot);
+  if (snapshot.state === "conflict") return `${scope}\nCONFLICT`;
+  if (snapshot.state === "clean") return `${scope}\nCLEAN`;
+  return `${scope}\nDIRTY`;
+}
+
+export function gitWorkspaceScopeTitle(snapshot: GitSnapshot): string {
+  return compactGitLabel(gitWorkspaceScope(snapshot), 14);
 }
 
 function compactGitLabel(value: string, maxLength = 18): string {

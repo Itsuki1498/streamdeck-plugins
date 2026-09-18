@@ -15,8 +15,20 @@ const prompts: Record<CodexGitCommand, string> = {
 };
 
 export class GitAdapter {
+  private readonly cache = new Map<string, { observedAt: number; snapshot: GitSnapshot }>();
+
   snapshot(workspacePath: string | undefined): Promise<GitSnapshot> {
-    return readGitSnapshot(workspacePath);
+    const key = workspacePath ?? "";
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.observedAt < 1500) return Promise.resolve(cached.snapshot);
+    return readGitSnapshot(workspacePath).then((snapshot) => {
+      this.cache.set(key, { observedAt: Date.now(), snapshot });
+      return snapshot;
+    });
+  }
+
+  close(): void {
+    this.cache.clear();
   }
 
   async runCodex(command: CodexGitCommand, repositoryPath: string): Promise<string> {

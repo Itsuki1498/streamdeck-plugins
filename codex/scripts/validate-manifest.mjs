@@ -21,6 +21,12 @@ const expectedActions = [
   ["usage-weekly", "Keypad"],
   ["status", "Keypad"],
   ["git-status", "Keypad"],
+  ["git-focus-1", "Keypad"],
+  ["git-focus-2", "Keypad"],
+  ["git-focus-3", "Keypad"],
+  ["git-focus-4", "Keypad"],
+  ["git-focus-5", "Keypad"],
+  ["git-focus-6", "Keypad"],
   ["git-diff", "Keypad"],
   ["git-review", "Keypad"],
   ["git-test", "Keypad"],
@@ -35,7 +41,7 @@ for (const [name, controller] of expectedActions) {
   requireValue(typeof action?.Icon === "string" && action.Icon.startsWith("static/imgs/actions/"), `${name} icon is missing`);
   requireValue(action?.States?.length >= 1, `${name} state image is missing`);
   if (controller === "Keypad" && name !== "status" && name !== "usage-five-hour" && name !== "usage-weekly") requireValue(action?.UserTitleEnabled === false, `${name} must be icon-only`);
-  if (["approve", "reject", "status", "git-status", "git-diff", "git-review", "git-test", "git-commit-prep"].includes(name)) requireValue(action?.DisableAutomaticStates === true, `${name} state must be runtime-controlled`);
+  if (["approve", "reject", "status", "git-status", "git-focus-1", "git-focus-2", "git-focus-3", "git-focus-4", "git-focus-5", "git-focus-6", "git-diff", "git-review", "git-test", "git-commit-prep"].includes(name)) requireValue(action?.DisableAutomaticStates === true, `${name} state must be runtime-controlled`);
   if (name === "status") requireValue(action?.States?.length === 2 && action?.DisableAutomaticStates === true, "status must expose two runtime-controlled states");
   requireValue((action?.States?.length ?? 0) <= 2, `${name} must expose at most two native image states`);
 }
