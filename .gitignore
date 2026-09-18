@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+
+# Generated plugin output
+codex/plugin/com.itsuki.codex-neo-deck.sdPlugin/bin/
+codex/release/
+musescore/plugin/com.codex.musescore-control.sdPlugin/bin/
+musescore/release/
+
+# Runtime logs
+musescore/plugin/com.codex.musescore-control.sdPlugin/logs/

@@ -1,0 +1,32 @@
+{
+  "name": "streamdeck-plugins-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Workspace for two macOS Stream Deck plugins: MuseScore Control and Codex Neo Deck.",
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:musescore && npm run build:codex",
+    "build:musescore": "node musescore/scripts/build.mjs",
+    "build:codex": "npm run generate:codex-icons && node codex/scripts/build.mjs",
+    "generate:codex-icons": "node codex/scripts/generate-icons.mjs",
+    "generate:musescore-icons": "node musescore/scripts/sync-palette-icons.mjs",
+    "validate": "streamdeck validate --no-update-check musescore/plugin/com.codex.musescore-control.sdPlugin && npm run validate:codex",
+    "validate:codex": "node codex/scripts/validate-manifest.mjs",
+    "pack": "npm run pack:musescore && npm run pack:codex",
+    "pack:musescore": "streamdeck pack --no-update-check musescore/plugin/com.codex.musescore-control.sdPlugin --force --output musescore/release",
+    "pack:codex": "node codex/scripts/pack.mjs",
+    "test": "node --experimental-strip-types --test codex/tests/*.test.ts"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^2.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@types/node": "^24.0.0",
+    "rollup": "^4.52.0",
+    "typescript": "^5.9.2",
+    "tslib": "^2.8.1"
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "com.itsuki.codex-neo-deck",
+  "Name": "Codex Neo Deck",
+  "Version": "0.1.5.0",
+  "Author": "Codex",
+  "Description": "Dedicated Stream Deck Neo key actions for Codex approvals, status, and usage.",
+  "Icon": "static/imgs/plugin",
+  "Category": "Codex Neo Deck",
+  "CategoryIcon": "static/imgs/category",
+  "CodePath": "bin/plugin.js",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "7.5"
+  },
+  "Nodejs": {
+    "Version": "24"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    }
+  ],
+  "ApplicationsToMonitor": {
+    "mac": [
+      "com.openai.codex"
+    ]
+  },
+  "Actions": [
+    {
+      "UUID": "com.itsuki.codex-neo-deck.approve",
+      "Name": "Codex Approve",
+      "Icon": "static/imgs/actions/approve",
+      "Tooltip": "Approve the selected Codex request.",
+      "UserTitleEnabled": false,
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad"],
+      "States": [
+        { "Image": "static/imgs/states/approve", "ShowTitle": false },
+        { "Image": "static/imgs/states/approve-attention", "ShowTitle": false }
+      ]
+    },
+    {
+      "UUID": "com.itsuki.codex-neo-deck.reject",
+      "Name": "Codex Reject",
+      "Icon": "static/imgs/actions/reject",
+      "Tooltip": "Reject the selected Codex request.",
+      "UserTitleEnabled": false,
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad"],
+      "States": [
+        { "Image": "static/imgs/states/reject", "ShowTitle": false },
+        { "Image": "static/imgs/states/reject-attention", "ShowTitle": false }
+      ]
+    },
+    {
+      "UUID": "com.itsuki.codex-neo-deck.next",
+      "Name": "Codex Next Approval",
+      "Icon": "static/imgs/actions/next",
+      "Tooltip": "Select the next pending Codex approval.",
+      "UserTitleEnabled": false,
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad"],
+      "States": [
+        { "Image": "static/imgs/states/next", "ShowTitle": false },
+        { "Image": "static/imgs/states/next-highlight", "ShowTitle": false }
+      ]
+    },
+    {
+      "UUID": "com.itsuki.codex-neo-deck.usage-five-hour",
+      "Name": "Codex 5H Usage",
+      "Icon": "static/imgs/actions/usage-five-hour",
+      "Tooltip": "Show remaining Codex five-hour usage.",
+      "UserTitleEnabled": false,
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "static/imgs/states/usage-five-hour", "ShowTitle": true }]
+    },
+    {
+      "UUID": "com.itsuki.codex-neo-deck.usage-weekly",
+      "Name": "Codex Weekly Usage",
+      "Icon": "static/imgs/actions/usage-weekly",
+      "Tooltip": "Show remaining Codex weekly usage.",
+      "UserTitleEnabled": false,
+      "Controllers": ["Keypad"],
+      "States": [{ "Image": "static/imgs/states/usage-weekly", "ShowTitle": true }]
+    },
+    {
+      "UUID": "com.itsuki.codex-neo-deck.status",
+      "Name": "Codex Status",
+      "Icon": "static/imgs/actions/status",
+      "Tooltip": "Show the current Codex status.",
+      "UserTitleEnabled": false,
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad"],
+      "States": [
+        { "Image": "static/imgs/states/status-ready-v2", "ShowTitle": true },
+        { "Image": "static/imgs/states/status-working-v2", "ShowTitle": true }
+      ]
+    },
+    {
+      "UUID": "com.itsuki.codex-neo-deck.git-status",
+      "Name": "Git Status",
+      "Icon": "static/imgs/actions/git-status",
+      "Tooltip": "Show the Git status of the current Codex workspace.",
+      "UserTitleEnabled": false,
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad"],
+      "States": [
+        { "Image": "static/imgs/states/git-status", "ShowTitle": true },
+        { "Image": "static/imgs/states/git-status-dirty", "ShowTitle": true }
+      ]
+    },
+    {
+      "UUID": "com.itsuki.codex-neo-deck.git-diff",
+      "Name": "Git Diff",
+      "Icon": "static/imgs/actions/git-diff",
+      "Tooltip": "Ask Codex to explain the current Git diff.",
+      "UserTitleEnabled": false,
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad"],
+      "States": [
+        { "Image": "static/imgs/states/git-diff", "ShowTitle": true },
+        { "Image": "static/imgs/states/git-diff-busy", "ShowTitle": true }
+      ]
+    },
+    {
+      "UUID": "com.itsuki.codex-neo-deck.git-review",
+      "Name": "Git Review",
+      "Icon": "static/imgs/actions/git-review",
+      "Tooltip": "Ask Codex to review the current Git diff.",
+      "UserTitleEnabled": false,
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad"],
+      "States": [
+        { "Image": "static/imgs/states/git-review", "ShowTitle": true },
+        { "Image": "static/imgs/states/git-review-busy", "ShowTitle": true }
+      ]
+    },
+    {
+      "UUID": "com.itsuki.codex-neo-deck.git-test",
+      "Name": "Git Test",
+      "Icon": "static/imgs/actions/git-test",
+      "Tooltip": "Ask Codex to run safe checks for the current Git diff.",
+      "UserTitleEnabled": false,
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad"],
+      "States": [
+        { "Image": "static/imgs/states/git-test", "ShowTitle": true },
+        { "Image": "static/imgs/states/git-test-busy", "ShowTitle": true }
+      ]
+    },
+    {
+      "UUID": "com.itsuki.codex-neo-deck.git-commit-prep",
+      "Name": "Git Commit Prep",
+      "Icon": "static/imgs/actions/git-commit-prep",
+      "Tooltip": "Ask Codex to prepare a commit message without committing.",
+      "UserTitleEnabled": false,
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad"],
+      "States": [
+        { "Image": "static/imgs/states/git-commit-prep", "ShowTitle": true },
+        { "Image": "static/imgs/states/git-commit-prep-busy", "ShowTitle": true }
+      ]
+    },
+    {
+      "UUID": "com.itsuki.codex-neo-deck.control",
+      "Name": "Codex Control (legacy)",
+      "Icon": "static/imgs/actions/infobar",
+      "Tooltip": "Compatibility action for older Codex Neo Deck profiles.",
+      "Controllers": ["Keypad"],
+      "VisibleInActionsList": false,
+      "UserTitleEnabled": false,
+      "States": [{ "Image": "static/imgs/states/infobar" }]
+    }
+  ]
+}

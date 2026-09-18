@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex Neo Deck</title>
+  <style>
+    :root { color-scheme: dark; font: -apple-system-body, BlinkMacSystemFont, sans-serif; }
+    body { margin: 0; padding: 14px; color: #f8fafc; background: #111827; }
+    h1 { margin: 0 0 5px; font-size: 16px; }
+    p { margin: 0 0 14px; color: #aeb9cb; font-size: 12px; line-height: 1.45; }
+    section { margin: 12px 0 16px; padding-top: 12px; border-top: 1px solid #334155; }
+    label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 600; }
+    .row { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .preview { width: 64px; height: 64px; border-radius: 10px; object-fit: contain; background: #0f172a; border: 1px solid #475569; }
+    .preview.empty { display: grid; place-items: center; color: #64748b; font-size: 10px; text-align: center; }
+    button { width: 100%; margin: 3px 0; padding: 7px 8px; color: #f8fafc; background: #263449; border: 1px solid #475569; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #334155; }
+    .clear { color: #cbd5e1; background: transparent; }
+    .hint { margin-top: 6px; color: #94a3b8; font-size: 11px; }
+    .error { min-height: 15px; color: #fca5a5; font-size: 11px; }
+    .choose { display: block; box-sizing: border-box; text-align: center; }
+    .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  </style>
+</head>
+<body>
+  <h1 id="heading">Codex Neo Deck の画像</h1>
+  <p>状態ごとに任意の画像を設定できます。設定しない状態はCodexの標準表示を使います。</p>
+  <section id="states"></section>
+  <div id="error" class="error"></div>
+  <p class="hint" id="usageHint"></p>
+
+  <script>
+    let websocket;
+    let context;
+    let propertyInspectorUUID;
+    let actionId = "";
+    let settings = { customImages: {} };
+
+    const stateLabels = {
+      approve: ["通常", "承認待ち"],
+      reject: ["通常", "承認待ち"],
+      next: ["通常", "複数の承認待ち"],
+      "usage-five-hour": ["5H 使用量"],
+      "usage-weekly": ["WEEK 使用量"],
+      status: ["オフライン", "承認待ち", "入力待ち", "作業中", "エラー", "READY（待機）"]
+    };
+
+    function actionName() {
+      return actionId.split(".").pop() || "status";
+    }
+
+    function showError(message) {
+      document.getElementById("error").textContent = message;
+    }
+
+    function renderPreview(element, value) {
+      element.replaceChildren();
+      if (!value) {
+        element.classList.add("empty");
+        element.textContent = "標準";
+        return;
+      }
+      element.classList.remove("empty");
+      const image = document.createElement("img");
+      image.src = value;
+      image.alt = "選択した画像";
+      image.style.width = "100%";
+      image.style.height = "100%";
+      image.style.objectFit = "contain";
+      element.append(image);
+    }
+
+    function sendSettings() {
+      if (!websocket || websocket.readyState !== 1) return;
+      // Stream Deck 7.5.x routes PI writes through the inspector context and
+      // uses targetContext/action to identify the action instance to update.
+      websocket.send(JSON.stringify({
+        event: "setSettings",
+        context: propertyInspectorUUID,
+        action: actionId,
+        targetContext: context,
+        payload: settings,
+      }));
+    }
+
+    function imageData(file) {
+      const imageName = file?.name || "";
+      if (!file || (!file.type.startsWith("image/") && !/\.(png|jpe?g|webp|gif)$/i.test(imageName))) {
+        throw new Error("画像ファイルを選択してください。");
+      }
+      if (file.size > 8 * 1024 * 1024) throw new Error("画像は8MB以下にしてください。");
+
+      // Keep the original data URL. Stream Deck accepts image data URLs, and
+      // decoding through Image/canvas is unreliable in the Qt WebView shipped
+      // with Stream Deck 7.5.1 (notably for otherwise valid JPEG files).
+      const readAsDataUrl = () => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const value = typeof reader.result === "string" ? reader.result : "";
+          if (!/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,/i.test(value)) {
+            reject(new Error("対応していない画像形式です。PNG/JPEG/WebP/GIFを選択してください。"));
+            return;
+          }
+          if (value.length > 12 * 1024 * 1024) {
+            reject(new Error("画像データが大きすぎます。8MB以下の画像を選んでください。"));
+            return;
+          }
+          resolve(value);
+        };
+        reader.onerror = () => reject(new Error("画像の読み込みに失敗しました。"));
+        reader.readAsDataURL(file);
+      });
+
+      const readAsArrayBuffer = async () => {
+        if (typeof file.arrayBuffer !== "function") throw new Error("画像の読み込みに失敗しました。");
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        let binary = "";
+        for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+          binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+        }
+        const mime = file.type || (/\.png$/i.test(imageName) ? "image/png" : "image/jpeg");
+        return `data:${mime};base64,${btoa(binary)}`;
+      };
+
+      return readAsDataUrl().catch(() => readAsArrayBuffer());
+    }
+
+    function buildStateRows() {
+      const root = document.getElementById("states");
+      root.replaceChildren();
+      const labels = stateLabels[actionName()] || ["通常"];
+      labels.forEach((label, state) => {
+        const row = document.createElement("div");
+        row.className = "row";
+        const preview = document.createElement("div");
+        preview.className = "preview";
+        renderPreview(preview, settings.customImages[String(state)]);
+        const controls = document.createElement("div");
+        const title = document.createElement("label");
+        title.textContent = label;
+        const input = document.createElement("input");
+        input.id = `image-${actionName()}-${state}`;
+        input.type = "file";
+        // Stream Deck 7.5.1's Qt file dialog can incorrectly disable Open for
+        // JPEG files when the accept filter is set on a hidden input. Validate
+        // the MIME type and extension in imageData() instead.
+        input.className = "file-input";
+        const choose = document.createElement("label");
+        choose.className = "choose";
+        choose.textContent = "画像を選択";
+        choose.htmlFor = input.id;
+        const clear = document.createElement("button");
+        clear.textContent = "この状態を標準に戻す";
+        clear.className = "clear";
+        clear.onclick = () => {
+          delete settings.customImages[String(state)];
+          renderPreview(preview);
+          sendSettings();
+        };
+        input.onchange = async () => {
+          showError("");
+          try {
+            const selectedFile = input.files && input.files[0];
+            if (!selectedFile) throw new Error("画像ファイルが選択されませんでした。");
+            const value = await imageData(selectedFile);
+            settings.customImages[String(state)] = value;
+            renderPreview(preview, value);
+            sendSettings();
+          } catch (error) {
+            showError(error instanceof Error ? error.message : "画像を設定できませんでした。");
+          } finally {
+            input.value = "";
+          }
+        };
+        controls.append(title, input, choose, clear);
+        row.append(preview, controls);
+        root.append(row);
+      });
+    }
+
+    window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, info, actionInfo) => {
+      const action = JSON.parse(actionInfo);
+      propertyInspectorUUID = uuid;
+      actionId = [action.action, action.actionId, action.uuid, action.payload?.action]
+        .find((candidate) => typeof candidate === "string" && candidate.includes("com.itsuki.codex-neo-deck.")) || "";
+      context = action.context;
+      document.getElementById("heading").textContent = "Codex Neo Deck の画像";
+      const incoming = action.payload && action.payload.settings ? action.payload.settings : {};
+      settings = { customImages: { ...(incoming.customImages || {}) } };
+      if (incoming.customImage && !settings.customImages["0"]) settings.customImages["0"] = incoming.customImage;
+      if (incoming.customAlertImage && !settings.customImages["1"]) settings.customImages["1"] = incoming.customAlertImage;
+      buildStateRows();
+      document.getElementById("usageHint").textContent = actionName().startsWith("usage-")
+        ? "Usageキーでは、選んだ画像を背景にしてWEEK/5H・メーター・パーセンテージを重ねて表示します。"
+        : "画像を設定しない状態は、Codexの状態アイコンへ戻ります。";
+      websocket = new WebSocket(`ws://127.0.0.1:${port}`);
+      websocket.onopen = () => {
+        websocket.send(JSON.stringify({ event: registerEvent, uuid }));
+        websocket.send(JSON.stringify({ event: "getSettings", context }));
+      };
+      websocket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.event === "didReceiveSettings") {
+            const incomingSettings = message.payload?.settings || {};
+            settings = { customImages: { ...(incomingSettings.customImages || {}) } };
+            if (incomingSettings.customImage && !settings.customImages["0"]) settings.customImages["0"] = incomingSettings.customImage;
+            if (incomingSettings.customAlertImage && !settings.customImages["1"]) settings.customImages["1"] = incomingSettings.customAlertImage;
+            buildStateRows();
+          }
+        } catch {
+          // Ignore malformed host messages.
+        }
+      };
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,348 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "com.codex.musescore-control",
+  "Name": "MuseScore Control",
+  "Version": "0.2.0.0",
+  "Author": "Codex",
+  "Description": "Control MuseScore Studio from individually configurable Stream Deck keys.",
+  "Icon": "static/imgs/plugin",
+  "Category": "MuseScore Control",
+  "CategoryIcon": "static/imgs/category",
+  "CodePath": "bin/plugin.js",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "7.1"
+  },
+  "Nodejs": {
+    "Version": "24",
+    "Debug": "enabled"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    }
+  ],
+  "ApplicationsToMonitor": {
+    "mac": [
+      "org.musescore.MuseScore"
+    ]
+  },
+  "Actions": [
+    {
+      "UUID": "com.codex.musescore-control.command",
+      "Name": "操作",
+      "Icon": "static/imgs/actions/command",
+      "Tooltip": "MuseScoreの操作を選んで実行します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-command.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/command"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.grace-notes",
+      "Name": "装飾音符",
+      "Icon": "static/imgs/actions/palette-grace-notes",
+      "Tooltip": "装飾音符パレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-grace-notes"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.ornaments",
+      "Name": "装飾記号",
+      "Icon": "static/imgs/actions/palette-ornaments",
+      "Tooltip": "装飾記号を選んで適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-ornaments"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.tremolos",
+      "Name": "トレモロ",
+      "Icon": "static/imgs/actions/palette-tremolos",
+      "Tooltip": "トレモロを選んで適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-tremolos"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.guitar",
+      "Name": "ギター",
+      "Icon": "static/imgs/actions/palette-guitar",
+      "Tooltip": "ギターパレットの項目を選んで適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-guitar"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.lines",
+      "Name": "線",
+      "Icon": "static/imgs/actions/palette-lines",
+      "Tooltip": "線パレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-lines"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.breaths",
+      "Name": "ブレスと休止",
+      "Icon": "static/imgs/actions/palette-breaths",
+      "Tooltip": "ブレスと休止パレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-breaths"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.arpeggios",
+      "Name": "アルペジオとグリッサンド",
+      "Icon": "static/imgs/actions/palette-arpeggios",
+      "Tooltip": "アルペジオとグリッサンドパレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-arpeggios"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.clefs",
+      "Name": "音部記号",
+      "Icon": "static/imgs/actions/palette-clefs",
+      "Tooltip": "音部記号パレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-clefs"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.key-signatures",
+      "Name": "調号",
+      "Icon": "static/imgs/actions/palette-key-signatures",
+      "Tooltip": "調号パレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-key-signatures"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.time-signatures",
+      "Name": "拍子記号",
+      "Icon": "static/imgs/actions/palette-time-signatures",
+      "Tooltip": "拍子記号パレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-time-signatures"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.tempo",
+      "Name": "テンポ",
+      "Icon": "static/imgs/actions/palette-tempo",
+      "Tooltip": "テンポパレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-tempo"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.accidentals",
+      "Name": "臨時記号",
+      "Icon": "static/imgs/actions/palette-accidentals",
+      "Tooltip": "臨時記号を選んで適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-accidentals"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.dynamics",
+      "Name": "強弱記号",
+      "Icon": "static/imgs/actions/palette-dynamics",
+      "Tooltip": "強弱記号パレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-dynamics"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.articulations",
+      "Name": "アーティキュレーション",
+      "Icon": "static/imgs/actions/palette-articulations",
+      "Tooltip": "アーティキュレーションを選んで適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-articulations"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.text",
+      "Name": "テキスト",
+      "Icon": "static/imgs/actions/palette-text",
+      "Tooltip": "テキストパレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-text"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.keyboard",
+      "Name": "鍵盤",
+      "Icon": "static/imgs/actions/palette-keyboard",
+      "Tooltip": "鍵盤パレットの項目を選んで適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-keyboard"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.repeats",
+      "Name": "繰り返しとジャンプ",
+      "Icon": "static/imgs/actions/palette-repeats",
+      "Tooltip": "繰り返しとジャンプパレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-repeats"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.barlines",
+      "Name": "縦線",
+      "Icon": "static/imgs/actions/palette-barlines",
+      "Tooltip": "縦線パレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-barlines"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.palette.layout",
+      "Name": "レイアウト",
+      "Icon": "static/imgs/actions/palette-layout",
+      "Tooltip": "レイアウトパレットから選んだ項目を適用します。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-palette-category.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/palette-layout"
+        }
+      ]
+    },
+    {
+      "UUID": "com.codex.musescore-control.measure",
+      "Name": "小節を追加",
+      "Icon": "static/imgs/actions/measure",
+      "Tooltip": "MuseScoreで挿入場所と小節数を選びます。",
+      "Controllers": [
+        "Keypad"
+      ],
+      "PropertyInspectorPath": "ui/musescore-measure.html",
+      "States": [
+        {
+          "Image": "static/imgs/actions/measure"
+        }
+      ]
+    }
+  ]
+}
