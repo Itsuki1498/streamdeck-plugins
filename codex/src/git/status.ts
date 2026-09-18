@@ -98,8 +98,13 @@ async function runGit(cwd: string, args: string[]): Promise<string> {
 export function gitStatusTitle(snapshot: GitSnapshot): string {
   if (snapshot.state === "no-repo") return "GIT\nNO REPO";
   if (snapshot.state === "error") return "GIT\nERROR";
-  const branch = snapshot.branch ?? "DETACHED";
-  if (snapshot.state === "conflict") return `${snapshot.repositoryName ?? "GIT"}\nCONFLICT ${snapshot.conflictFiles}`;
-  if (snapshot.state === "clean") return `${branch}\nCLEAN  ↑${snapshot.ahead} ↓${snapshot.behind}`;
-  return `${branch}\nM${snapshot.modifiedFiles} S${snapshot.stagedFiles} U${snapshot.untrackedFiles}\n↑${snapshot.ahead} ↓${snapshot.behind}`;
+  const repository = compactGitLabel(snapshot.repositoryName ?? "GIT");
+  const branch = compactGitLabel(snapshot.branch ?? "DETACHED");
+  if (snapshot.state === "conflict") return `${repository}\n${branch}\nCONFLICT ${snapshot.conflictFiles}`;
+  if (snapshot.state === "clean") return `${repository}\n${branch}\nCLEAN ↑${snapshot.ahead} ↓${snapshot.behind}`;
+  return `${repository}\n${branch}\nM${snapshot.modifiedFiles} S${snapshot.stagedFiles} U${snapshot.untrackedFiles}`;
+}
+
+function compactGitLabel(value: string, maxLength = 18): string {
+  return value.length <= maxLength ? value : `…${value.slice(-(maxLength - 1))}`;
 }
