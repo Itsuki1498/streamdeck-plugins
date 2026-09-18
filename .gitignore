@@ -23,3 +23,7 @@ musescore/release/
 # Runtime logs
 musescore/plugin/com.codex.musescore-control.sdPlugin/logs/
 codex/plugin/com.itsuki.codex-neo-deck.sdPlugin/logs/
+
+# Other local Stream Deck projects are intentionally excluded from this Codex repository
+icon/
+musescore/
