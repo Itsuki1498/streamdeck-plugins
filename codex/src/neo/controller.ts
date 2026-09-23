@@ -5,12 +5,12 @@ import type { CodexSnapshot, CodexWorkspace } from "../codex/types.js";
 import { GitAdapter, type CodexGitCommand } from "../git/adapter.js";
 import { gitStatusTitle, gitWorkspaceDisplayTitle, gitWorkspaceScopeTitle } from "../git/status.js";
 import type { GitSnapshot } from "../git/types.js";
-import type { StreamDeckAction } from "../streamdeck-runtime.js";
+import type { StreamDeckAction, StreamDeckSettings } from "../streamdeck-runtime.js";
 import { truncateForInfoBar } from "../codex/sanitize.js";
 import { renderApprovalInfoBar, renderInfoBar, type ControllerNotice } from "./render.js";
 import { renderStatusImage, renderUsageImage } from "./usage-image.js";
 
-export type ControlCommand = "approve" | "reject" | "next" | "usage-five-hour" | "usage-weekly" | "status" | "infobar"
+export type ControlCommand = "approve" | "reject" | "answer" | "next" | "usage-five-hour" | "usage-weekly" | "status" | "infobar"
   | "git-status" | "git-diff" | "git-review" | "git-test" | "git-commit-prep"
   | "git-focus-1" | "git-focus-2" | "git-focus-3" | "git-focus-4" | "git-focus-5" | "git-focus-6";
 type GitActionCommand = "git-diff" | "git-review" | "git-test" | "git-commit-prep";
@@ -19,7 +19,7 @@ type GitWorkspaceContext = { observation: CodexWorkspace; snapshot: GitSnapshot 
 const maxGitFocusButtons = 6;
 
 type DisplayAction = StreamDeckAction;
-type RegisteredAction = { action: DisplayAction; command: ControlCommand; controller: string };
+type RegisteredAction = { action: DisplayAction; command: ControlCommand; controller: string; settings: StreamDeckSettings };
 
 export class NeoController {
   private readonly adapter = new CodexAdapter();
@@ -27,7 +27,7 @@ export class NeoController {
   private readonly actions = new Map<string, RegisteredAction>();
   private readonly imageSignatures = new Map<string, string>();
   private queue: ApprovalQueueState = { approvals: [], selectedIndex: 0 };
-  private snapshot: CodexSnapshot = { connected: false, slots: [], approvals: [], status: "offline", observedAt: 0 };
+  private snapshot: CodexSnapshot = { connected: false, slots: [], approvals: [], questions: [], status: "offline", observedAt: 0 };
   private gitSnapshot: GitSnapshot = { state: "no-repo", modifiedFiles: 0, stagedFiles: 0, untrackedFiles: 0, conflictFiles: 0, ahead: 0, behind: 0, observedAt: 0 };
   private gitWorkspaces: GitWorkspaceContext[] = [];
   private selectedGitWorkspacePath?: string;
@@ -67,11 +67,16 @@ export class NeoController {
     this.gitSnapshot = { state: "no-repo", modifiedFiles: 0, stagedFiles: 0, untrackedFiles: 0, conflictFiles: 0, ahead: 0, behind: 0, observedAt: 0 };
   }
 
-  register(action: DisplayAction, command: ControlCommand, controller: string): void {
-    this.actions.set(action.id, { action, command, controller });
+  register(action: DisplayAction, command: ControlCommand, controller: string, settings?: StreamDeckSettings): void {
+    this.actions.set(action.id, { action, command, controller, settings: settings ?? {} });
     this.imageSignatures.delete(action.id);
     this.start();
     void this.renderAction(action, command, controller);
+  }
+
+  updateSettings(actionId: string, settings?: StreamDeckSettings): void {
+    const registered = this.actions.get(actionId);
+    if (registered) registered.settings = settings ?? {};
   }
 
   unregister(action: Pick<DisplayAction, "id">): void {
@@ -93,6 +98,17 @@ export class NeoController {
           const approval = this.queue.approvals[this.queue.selectedIndex];
           if (!approval) throw new Error("No approval is pending.");
           await this.adapter.decide(approval, command);
+          this.notice = "";
+          await action.showOk?.();
+          await this.refresh();
+          break;
+        }
+        case "answer": {
+          const question = this.snapshot.questions[0];
+          const answer = this.actions.get(action.id)?.settings.answerText;
+          if (!question) throw new Error("No Codex question is pending.");
+          if (typeof answer !== "string" || !answer.trim()) throw new Error("Set an answer in the action settings first.");
+          await this.adapter.answer(question, answer);
           this.notice = "";
           await action.showOk?.();
           await this.refresh();
@@ -128,7 +144,7 @@ export class NeoController {
           break;
       }
     } catch (error) {
-      this.notice = command === "approve" ? "APPROVE FAILED" : command === "reject" ? "REJECT FAILED" : "";
+      this.notice = command === "approve" ? "APPROVE FAILED" : command === "reject" ? "REJECT FAILED" : command === "answer" ? "ANSWER FAILED" : "";
       await action.showAlert();
       await this.renderAll();
       console.warn("Codex Neo action failed", error instanceof Error ? error.message : "unknown error");
@@ -158,7 +174,7 @@ export class NeoController {
       this.notice = "";
     } catch {
       // Never keep approval data actionable after a bridge failure.
-      this.snapshot = { connected: false, slots: [], approvals: [], status: "offline", observedAt: Date.now() };
+      this.snapshot = { connected: false, slots: [], approvals: [], questions: [], status: "offline", observedAt: Date.now() };
       this.gitWorkspaces = [];
       this.selectedGitWorkspacePath = undefined;
       this.gitSnapshot = await this.gitAdapter.snapshot(undefined);
@@ -198,8 +214,8 @@ export class NeoController {
         const now = Date.now();
         const reset = window?.resetsAt ? Math.max(0, Math.round((window.resetsAt - now) / 60000)) : "none";
         await this.setImageIfChanged(action, `usage:${kind}:${remaining}:${reset}`, renderUsageImage(window, kind, now), 0);
-      } else if (command === "approve" || command === "reject" || command === "next") {
-        state = actionKeyState(command, this.snapshot, this.queue.approvals.length);
+      } else if (command === "approve" || command === "reject" || command === "next" || command === "answer") {
+        state = actionKeyState(command, this.snapshot, this.queue.approvals.length, this.snapshot.questions.length);
       } else if (command === "git-status") {
         state = this.gitSnapshot.state === "clean" || this.gitSnapshot.state === "no-repo" ? 0 : 1;
         title = gitStatusTitle(this.gitSnapshot);

@@ -7,7 +7,7 @@ import { LocalCodexStatus } from "./local-status.js";
 import { mergeLocalSlots } from "./slot-merge.js";
 import { sanitizeText, summaryHash } from "./sanitize.js";
 import { usageFromWindows } from "./usage.js";
-import type { CodexSnapshot, CodexSlot, PendingApproval, UsageWindow } from "./types.js";
+import type { CodexSnapshot, CodexSlot, PendingApproval, PendingQuestion, UsageWindow } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 const BRIDGE_STATE_PATH = `${homedir()}/Library/Application Support/CodexDeck/codex-micro-bridge.json`;
@@ -67,11 +67,16 @@ const SNAPSHOT_EXPRESSION = [
   "  const clean = (value) => String(value || '').replace(/[\\x00-\\x1F\\x7F]/g, '').replace(/\\s+/g, ' ').trim().slice(0, 240);",
   "  const kindOf = (text) => { const value = text.toLowerCase(); if (/\\b(npm|pnpm|yarn|git|cargo|python|node|bash|zsh|shell|command)\\b/.test(value)) return 'shell'; if (/\\b(http|https|network|website|domain|host)\\b/.test(value)) return 'network'; if (/\\b(read|file read|open file)\\b/.test(value)) return 'file-read'; if (/\\b(write|file write|patch|edit|create file|change)\\b/.test(value)) return 'file-write'; if (/\\b(app|application|launch)\\b/.test(value)) return 'external-app'; return 'other'; };",
   "  const surfaces = [...document.querySelectorAll('[data-codex-approval-surface],[data-approval-request-id],[data-request-id]')].filter((surface, index, all) => all.indexOf(surface) === index).map((surface) => { const clone = surface.cloneNode(true); clone.querySelectorAll('button,[role=\"button\"],form').forEach((element) => element.remove()); const text = clean(clone.textContent); const candidates = [...surface.querySelectorAll('pre,code,[data-command],[data-file-path]')].map((element) => clean(element.textContent || element.getAttribute('data-command') || element.getAttribute('data-file-path'))).filter((value) => value.length > 1); const summary = candidates[0] || text.split(' ').find((value) => value.length > 1) || text; const approvalId = ['data-approval-request-id','data-request-id','data-call-id'].map((name) => surface.getAttribute(name)).find(Boolean) || undefined; return { summary: clean(summary), detail: text !== clean(summary) ? text : undefined, kind: kindOf(summary + ' ' + text), approvalId }; });",
+  "  const visible = (element) => { const rect = element.getBoundingClientRect(); const style = getComputedStyle(element); return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none'; };",
+  "  const questionInput = [...document.querySelectorAll('textarea,input:not([type=\"hidden\"]):not([type=\"file\"]),[contenteditable=\"true\"]')].find((element) => visible(element) && !element.closest('[data-composer-body],[data-composer-input-variant],[data-composer-input-layout]'));",
+  "  const questionHost = questionInput?.closest('form,[role=\"group\"],[data-codex-user-input-surface]') || questionInput?.parentElement;",
+  "  const questionPrompt = clean((questionHost?.textContent || '').replace(questionInput?.value || '', '')) || 'Codex is waiting for an answer';",
   "  let usage;",
   "  const clients = []; const fiberQueue = reactKey ? [root[reactKey]] : []; const fiberSeen = new Set(); while (fiberQueue.length && fiberSeen.size < 30000) { const fiber = fiberQueue.pop(); if (!fiber || fiberSeen.has(fiber)) continue; fiberSeen.add(fiber); const contexts = [fiber.memoizedProps?.value]; let dependency = fiber.dependencies?.firstContext; while (dependency) { contexts.push(dependency.memoizedValue); dependency = dependency.next; } for (const context of contexts) if (context && typeof context.getQueryCache === 'function' && typeof context.getQueryData === 'function' && !clients.includes(context)) clients.push(context); fiberQueue.push(fiber.child, fiber.sibling); }",
   "  for (const client of clients) { try { const query = client.getQueryCache().getAll().find((candidate) => JSON.stringify(candidate.queryKey) === '[\"rate-limit-status\"]'); const data = query?.state?.data?.rate_limit; if (!data) continue; const normalize = (window) => { if (!window) return null; const used = Number(window.used_percent); const seconds = Number(window.limit_window_seconds); if (!Number.isFinite(used) || !Number.isFinite(seconds)) return null; const bounded = Math.min(100, Math.max(0, used)); const reset = typeof window.reset_at === 'string' ? Date.parse(window.reset_at) : Number(window.reset_at); return { kind: Math.abs(seconds / 60 - 300) <= 1 ? 'five-hour' : Math.abs(seconds / 60 - 10080) <= 1 ? 'weekly' : 'other', usedPercent: bounded, remainingPercent: 100 - bounded, resetsAt: Number.isFinite(reset) ? (reset < 100000000000 ? reset * 1000 : reset) : undefined }; }; usage = { windows: [normalize(data.primary_window), normalize(data.secondary_window)].filter(Boolean), observedAt: Number(query?.state?.dataUpdatedAt) || Date.now() }; break; } catch {} }",
   "  const approvals = slots.filter((slot) => slot.status === 'awaiting-approval' && slot.threadKey).map((slot) => { const surface = slot.threadKey === activeThreadId ? surfaces[0] : undefined; const summary = surface?.summary || 'Open Codex to review'; return { threadId: slot.threadKey, ...(surface?.approvalId ? { approvalId: surface.approvalId } : {}), kind: surface?.kind || 'other', summary, ...(surface?.detail ? { detail: surface.detail } : {}), ...(surface?.summary ? { summaryHash: summary.split('').reduce((hash, character) => ((hash ^ character.charCodeAt(0)) * 16777619) >>> 0, 2166136261).toString(16) } : {}) }; });",
-  "  return { slots, activeThreadId, approvals, usage };",
+  "  const questions = slots.filter((slot) => slot.status === 'awaiting-response' && slot.threadKey && slot.threadKey === activeThreadId).map((slot) => { const questionId = ['data-question-id','data-request-id','data-call-id'].map((name) => questionHost?.getAttribute(name)).find(Boolean) || undefined; return { threadId: slot.threadKey, ...(questionId ? { questionId } : {}), prompt: questionPrompt, summaryHash: questionPrompt.split('').reduce((hash, character) => ((hash ^ character.charCodeAt(0)) * 16777619) >>> 0, 2166136261).toString(16) }; });",
+  "  return { slots, activeThreadId, approvals, questions, usage };",
   "})()",
 ].join("\n");
 
@@ -87,6 +92,7 @@ export class CodexConnection {
       slots?: Array<{ id: number; threadKey?: string | null; selected?: boolean; status?: unknown }>;
       activeThreadId?: string;
       approvals?: PendingApproval[];
+      questions?: PendingQuestion[];
       usage?: { windows?: UsageWindow[]; observedAt?: number };
     };
     const slots: CodexSlot[] = (raw.slots ?? []).map((slot) => ({
@@ -116,6 +122,11 @@ export class CodexConnection {
         ...(approval.detail ? { detail: sanitizeText(approval.detail, 240) } : {}),
         ...(approval.summaryHash ? { summaryHash: approval.summaryHash } : approval.summary ? { summaryHash: summaryHash(approval.summary) } : {}),
       })),
+      questions: (raw.questions ?? []).map((question) => ({
+        ...question,
+        prompt: sanitizeText(question.prompt, 240),
+        ...(question.summaryHash ? { summaryHash: question.summaryHash } : {}),
+      })),
       status: highestPriorityStatus(mergedSlots.map((slot) => slot.status)),
       slots: mergedSlots,
       ...(windows.length ? { usage: usageFromWindows(windows, raw.usage?.observedAt ?? Date.now()) } : {}),
@@ -126,6 +137,34 @@ export class CodexConnection {
   async dispatchApproval(decision: "approve" | "reject"): Promise<void> {
     const key = decision === "approve" ? "ACT07" : "ACT08";
     await this.dispatch({ event: { key, act: 1, slot: null, threadKey: null } });
+  }
+
+  async dispatchQuestionAnswer(answer: string): Promise<void> {
+    const cleanAnswer = answer.trim();
+    if (!cleanAnswer) throw new Error("An answer must be configured for this action.");
+    await this.ensureConnected();
+    const expression = [
+      "(() => {",
+      `  const answer = ${JSON.stringify(cleanAnswer)};`,
+      "  const visible = (element) => { const rect = element.getBoundingClientRect(); const style = getComputedStyle(element); return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none'; };",
+      "  const excluded = (element) => element.closest('[data-composer-body],[data-composer-input-variant],[data-composer-input-layout]');",
+      "  const normalized = (value) => String(value || '').replace(/\\s+/g, ' ').trim();",
+      "  const buttons = [...document.querySelectorAll('button,[role=\"button\"],input[type=\"button\"],input[type=\"submit\"]')].filter((element) => visible(element) && !excluded(element));",
+      "  const exactOption = buttons.find((element) => normalized(element.innerText || element.getAttribute('aria-label') || element.value) === normalized(answer));",
+      "  if (exactOption) { exactOption.click(); return { ok: true, mode: 'option' }; }",
+      "  const input = [...document.querySelectorAll('textarea,input:not([type=\"hidden\"]):not([type=\"file\"]),[contenteditable=\"true\"]')].find((element) => visible(element) && !excluded(element));",
+      "  if (!input) return { ok: false, reason: 'No visible Codex question form was found.' };",
+      "  if (input.isContentEditable) { input.textContent = answer; input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: answer })); } else { const prototype = Object.getPrototypeOf(input); const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value'); if (descriptor?.set) descriptor.set.call(input, answer); else input.value = answer; input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); }",
+      "  const scope = input.closest('form,[role=\"group\"],[data-codex-user-input-surface]') || input.parentElement;",
+      "  const submitLabels = /^(answer|submit|send|continue|done|回答|回答する|送信|続行|完了)$/i;",
+      "  const submit = [...(scope?.querySelectorAll('button,[role=\"button\"],input[type=\"submit\"]') || [])].find((element) => visible(element) && submitLabels.test(normalized(element.innerText || element.getAttribute('aria-label') || element.value)));",
+      "  if (submit) { submit.click(); return { ok: true, mode: 'text' }; }",
+      "  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }));",
+      "  return { ok: true, mode: 'text-enter' };",
+      "})()",
+    ].join("\n");
+    const result = await this.evaluate(expression) as { ok?: boolean; reason?: string } | undefined;
+    if (!result?.ok) throw new Error(result?.reason ?? "Codex question form was not found.");
   }
 
   close(): void {

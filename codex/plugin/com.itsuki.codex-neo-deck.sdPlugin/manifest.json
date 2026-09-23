@@ -55,6 +55,20 @@
       ]
     },
     {
+      "UUID": "com.itsuki.codex-neo-deck.answer",
+      "Name": "Codex Answer",
+      "Icon": "static/imgs/actions/answer",
+      "Tooltip": "Send the configured answer to the active Codex question.",
+      "PropertyInspectorPath": "static/property-inspector/customize.html",
+      "UserTitleEnabled": false,
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad"],
+      "States": [
+        { "Image": "static/imgs/states/answer", "ShowTitle": false },
+        { "Image": "static/imgs/states/answer-attention", "ShowTitle": false }
+      ]
+    },
+    {
       "UUID": "com.itsuki.codex-neo-deck.next",
       "Name": "Codex Next Approval",
       "Icon": "static/imgs/actions/next",

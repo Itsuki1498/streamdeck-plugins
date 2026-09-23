@@ -27,6 +27,13 @@ export type PendingApproval = ApprovalIdentity & {
   detail?: string;
 };
 
+export type PendingQuestion = {
+  threadId: string;
+  questionId?: string;
+  prompt: string;
+  summaryHash?: string;
+};
+
 export type UsageWindow = {
   kind: "five-hour" | "weekly" | "other";
   usedPercent: number;
@@ -61,6 +68,7 @@ export type CodexSnapshot = {
   workspaces?: CodexWorkspace[];
   slots: CodexSlot[];
   approvals: PendingApproval[];
+  questions: PendingQuestion[];
   status: CodexStatus | "offline";
   usage?: UsageSnapshot;
   observedAt: number;

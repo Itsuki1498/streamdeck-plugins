@@ -16,6 +16,7 @@ requireValue(manifest.ApplicationsToMonitor?.mac?.includes("com.openai.codex"), 
 const expectedActions = [
   ["approve", "Keypad"],
   ["reject", "Keypad"],
+  ["answer", "Keypad"],
   ["next", "Keypad"],
   ["usage-five-hour", "Keypad"],
   ["usage-weekly", "Keypad"],
@@ -41,7 +42,7 @@ for (const [name, controller] of expectedActions) {
   requireValue(typeof action?.Icon === "string" && action.Icon.startsWith("static/imgs/actions/"), `${name} icon is missing`);
   requireValue(action?.States?.length >= 1, `${name} state image is missing`);
   if (controller === "Keypad" && name !== "status" && name !== "usage-five-hour" && name !== "usage-weekly") requireValue(action?.UserTitleEnabled === false, `${name} must be icon-only`);
-  if (["approve", "reject", "status", "git-status", "git-focus-1", "git-focus-2", "git-focus-3", "git-focus-4", "git-focus-5", "git-focus-6", "git-diff", "git-review", "git-test", "git-commit-prep"].includes(name)) requireValue(action?.DisableAutomaticStates === true, `${name} state must be runtime-controlled`);
+  if (["approve", "reject", "answer", "status", "git-status", "git-focus-1", "git-focus-2", "git-focus-3", "git-focus-4", "git-focus-5", "git-focus-6", "git-diff", "git-review", "git-test", "git-commit-prep"].includes(name)) requireValue(action?.DisableAutomaticStates === true, `${name} state must be runtime-controlled`);
   if (name === "status") requireValue(action?.States?.length === 2 && action?.DisableAutomaticStates === true, "status must expose two runtime-controlled states");
   requireValue((action?.States?.length ?? 0) <= 2, `${name} must expose at most two native image states`);
 }
@@ -92,7 +93,7 @@ for (const name of ["status-offline-v2", "status-approval-v2", "status-input-v2"
     }
   }
 }
-for (const name of ["approve-attention", "reject-attention"]) {
+for (const name of ["approve-attention", "reject-attention", "answer-attention"]) {
   for (const suffix of [".png", "@2x.png"]) {
     try {
       await access(new URL(`static/imgs/states/${name}${suffix}`, root));

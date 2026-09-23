@@ -3,6 +3,7 @@
 `com.itsuki.codex-neo-deck.sdPlugin` は、Stream Deck Neo 専用の Codex controller です。
 
 - `Codex Approve` / `Codex Reject`：表示中の approval と thread identity が一致した場合だけ実行
+- `Codex Answer`：Codexの質問待ちを検出し、アクション設定に登録した回答を送信
 - `Codex Next Approval`：複数 approval を切り替え
 - `Codex 5H Usage` / `Codex Weekly Usage`：キーに配置可能。使用量は自動更新
 - `Codex Status`：待機時は `0`、稼働時は現在稼働中の作業数だけを標準タイトルで表示。作業完了時は外周が短時間点滅する
@@ -23,6 +24,7 @@
 | --- | --- |
 | Approve | 現在選択中の承認要求を承認。対象が消えた、threadを特定できない、接続が古い場合は実行しません |
 | Reject | 現在選択中の承認要求を拒否。Approveと同じ安全確認を行います |
+| Answer | 質問待ちのCodexに、プロパティインスペクターで設定した回答文を送信します。選択肢と同じ文言なら、その選択肢を選びます |
 | Next Approval | 複数の承認要求があるとき、InfoBarで確認する対象を次へ切り替えます |
 | 5H Usage | 5時間枠の残量を `5H`、メーター、パーセンテージで表示。自動更新 |
 | Weekly Usage | 週間枠の残量を `WEEK`、メーター、パーセンテージで表示。自動更新 |
@@ -40,6 +42,7 @@ Stream Deck 7.5.1の標準画像設定を使えるよう、状態遷移はすべ
 - Status：状態0が待機、状態1が稼働中。透明オーバーレイに `0` または現在の稼働数だけを表示し、完了時に数字を短時間点滅
 - Usage：透明オーバーレイに `5H` / `WEEK`、残量色のメーター、パーセンテージ、下端に次回リセットまでの時間を表示。残量に応じて緑・黄・赤へ自動変化
 - Approve / Reject / Next：状態を切り替えるだけで、Stream Deckで選んだ画像がそのまま残ります
+- Answer：状態0が待機、状態1が質問待ち。設定画面で回答文を登録してからキーを押してください
 
 Approve / Reject / Nextの標準アイコンは、背景画像を置いても埋もれないよう、黒の控えめなドロップシャドウ付きです。Status/Usageはアイコンを使わず、必要な情報だけを透明オーバーレイに描画します。
 

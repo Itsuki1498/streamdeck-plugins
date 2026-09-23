@@ -23,6 +23,8 @@ export type StreamDeckAction = {
   isKey(): boolean;
 };
 
+export type StreamDeckSettings = Record<string, unknown>;
+
 type Listener = (message: StreamDeckMessage) => void;
 
 const streamDeckOpen = 1;

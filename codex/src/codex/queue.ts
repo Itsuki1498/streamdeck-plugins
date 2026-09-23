@@ -1,4 +1,4 @@
-import type { CodexSnapshot, PendingApproval } from "./types.js";
+import type { CodexSnapshot, PendingApproval, PendingQuestion } from "./types.js";
 
 export type ApprovalQueueState = {
   approvals: PendingApproval[];
@@ -50,5 +50,20 @@ export function isApprovalActionSafe(snapshot: CodexSnapshot, approval: PendingA
       slot?.status === "approval" &&
       snapshot.activeThreadId === approval.threadId &&
       current.summaryHash === approval.summaryHash,
+  );
+}
+
+export function questionIdentityKey(question: PendingQuestion): string {
+  return [question.questionId ?? "", question.threadId, question.summaryHash ?? ""].join("|");
+}
+
+export function isQuestionActionSafe(snapshot: CodexSnapshot, question: PendingQuestion): boolean {
+  const current = snapshot.questions.find((candidate) => questionIdentityKey(candidate) === questionIdentityKey(question));
+  const slot = snapshot.slots.find((candidate) => candidate.threadKey === question.threadId);
+  return Boolean(
+    snapshot.connected &&
+      current &&
+      slot?.status === "input" &&
+      snapshot.activeThreadId === question.threadId,
   );
 }

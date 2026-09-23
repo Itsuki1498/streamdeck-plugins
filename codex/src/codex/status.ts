@@ -78,10 +78,11 @@ export function statusKeyState(snapshot: {
   return workingTaskCount(snapshot.slots ?? []) > 0 ? 1 : 0;
 }
 
-export function actionKeyState(command: "approve" | "reject" | "next", snapshot: {
+export function actionKeyState(command: "approve" | "reject" | "next" | "answer", snapshot: {
   status: CodexStatus | "offline";
-}, approvalCount: number): number {
+}, approvalCount: number, questionCount = 0): number {
   if (command === "approve" || command === "reject") return approvalCount > 0 ? 1 : 0;
   if (command === "next") return approvalCount > 1 ? 1 : 0;
+  if (command === "answer") return questionCount > 0 ? 1 : 0;
   return snapshot.status === "working" ? 1 : 0;
 }

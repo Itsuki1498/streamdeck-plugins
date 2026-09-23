@@ -3,19 +3,25 @@ import test from "node:test";
 import { actionKeyState, completedWorkingTaskCount, mapCodexStatus, statusKeyState, workingTaskCount } from "../src/codex/status.ts";
 import { classifyWindowMinutes, formatResetCompact } from "../src/codex/usage.ts";
 import { renderStatusImage, renderUsageImage } from "../src/neo/usage-image.ts";
-import { reconcileApprovalQueue, removeApproval, selectNextApproval, isApprovalActionSafe, type ApprovalQueueState } from "../src/codex/queue.ts";
+import { reconcileApprovalQueue, removeApproval, selectNextApproval, isApprovalActionSafe, isQuestionActionSafe, type ApprovalQueueState } from "../src/codex/queue.ts";
 import { sanitizeText, summaryHash } from "../src/codex/sanitize.ts";
 import { reduceRolloutEvents, rolloutThreadId } from "../src/codex/local-status.ts";
 import { mergeLocalSlots } from "../src/codex/slot-merge.ts";
 import { imageForState, normalizeCustomImageSettings } from "../src/neo/custom-image.ts";
 import { gitStatusTitle, gitWorkspaceDisplayTitle, parseGitStatus } from "../src/git/status.ts";
-import type { PendingApproval } from "../src/codex/types.ts";
+import type { PendingApproval, PendingQuestion } from "../src/codex/types.ts";
 
 const approval = (threadId: string, summary: string): PendingApproval => ({
   threadId,
   kind: "shell",
   summary,
   summaryHash: summaryHash(summary),
+});
+
+const question = (threadId: string, prompt = "Continue?"): PendingQuestion => ({
+  threadId,
+  prompt,
+  summaryHash: summaryHash(prompt),
 });
 
 test("maps Codex statuses to the controller states", () => {
@@ -243,6 +249,14 @@ test("fails closed when the approval is not the active, identified request", () 
   }, target), true);
 });
 
+test("only enables question answering for the active input request", () => {
+  const target = question("thread-a");
+  const base = { connected: true, approvals: [], questions: [target], observedAt: Date.now() };
+  assert.equal(isQuestionActionSafe({ ...base, activeThreadId: "thread-b", slots: [{ id: 0, threadKey: "thread-a", status: "input" }], status: "input" }, target), false);
+  assert.equal(isQuestionActionSafe({ ...base, activeThreadId: "thread-a", slots: [{ id: 0, threadKey: "thread-a", status: "working" }], status: "working" }, target), false);
+  assert.equal(isQuestionActionSafe({ ...base, activeThreadId: "thread-a", slots: [{ id: 0, threadKey: "thread-a", status: "input" }], status: "input" }, target), true);
+});
+
 test("maps the aggregate Codex status to the status key state", () => {
   const base = { connected: true, slots: [], approvals: [], observedAt: Date.now() };
   assert.equal(statusKeyState({ ...base, connected: false, status: "offline" }), 0);
@@ -257,4 +271,6 @@ test("changes action states for approvals and active work", () => {
   assert.equal(actionKeyState("approve", { status: "approval" }, 1), 1);
   assert.equal(actionKeyState("reject", { status: "approval" }, 1), 1);
   assert.equal(actionKeyState("next", { status: "approval" }, 2), 1);
+  assert.equal(actionKeyState("answer", { status: "input" }, 0, 1), 1);
+  assert.equal(actionKeyState("answer", { status: "idle" }, 0, 0), 0);
 });

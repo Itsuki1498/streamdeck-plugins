@@ -4,6 +4,7 @@ import { StreamDeckRuntime, type StreamDeckMessage } from "./streamdeck-runtime.
 const commands = {
   "com.itsuki.codex-neo-deck.approve": "approve",
   "com.itsuki.codex-neo-deck.reject": "reject",
+  "com.itsuki.codex-neo-deck.answer": "answer",
   "com.itsuki.codex-neo-deck.next": "next",
   "com.itsuki.codex-neo-deck.usage-five-hour": "usage-five-hour",
   "com.itsuki.codex-neo-deck.usage-weekly": "usage-weekly",
@@ -34,7 +35,7 @@ export function registerCodexActions(runtime: StreamDeckRuntime): void {
     const command = commandFor(message);
     if (!command) return;
     const action = runtime.actionFor(message);
-    controller.register(action, command, message.payload?.controller ?? action.controller);
+    controller.register(action, command, message.payload?.controller ?? action.controller, message.payload?.settings);
   });
 
   runtime.on("willDisappear", (message) => {
@@ -47,6 +48,10 @@ export function registerCodexActions(runtime: StreamDeckRuntime): void {
     if (!command) return;
     const action = runtime.actionFor(message);
     void controller.handleKey(command, action);
+  });
+
+  runtime.on("didReceiveSettings", (message) => {
+    if (message.context) controller.updateSettings(message.context, message.payload?.settings);
   });
 
 }

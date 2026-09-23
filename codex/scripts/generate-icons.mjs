@@ -17,6 +17,7 @@ const colors = {
 const glyphs = {
   approve: { color: colors.green, draw: drawCheck },
   reject: { color: colors.red, draw: drawCross },
+  answer: { color: colors.cyan, draw: drawAnswer },
   next: { color: colors.cyan, draw: drawNext },
   refresh: { color: colors.violet, draw: drawRefresh },
   "usage-five-hour": { color: colors.amber, draw: drawGauge },
@@ -105,6 +106,15 @@ function drawCheck(image, color) {
 function drawCross(image, color) {
   line(image, image.size * 0.25, image.size * 0.25, image.size * 0.75, image.size * 0.75, image.size * 0.12, color);
   line(image, image.size * 0.75, image.size * 0.25, image.size * 0.25, image.size * 0.75, image.size * 0.12, color);
+}
+
+function drawAnswer(image, color) {
+  roundedRect(image, image.size * 0.18, image.size * 0.2, image.size * 0.82, image.size * 0.68, image.size * 0.16, color);
+  line(image, image.size * 0.3, image.size * 0.67, image.size * 0.24, image.size * 0.82, image.size * 0.08, color);
+  line(image, image.size * 0.24, image.size * 0.82, image.size * 0.43, image.size * 0.7, image.size * 0.08, color);
+  const cutout = [15, 23, 42, 255];
+  line(image, image.size * 0.32, image.size * 0.43, image.size * 0.68, image.size * 0.43, image.size * 0.07, cutout);
+  line(image, image.size * 0.32, image.size * 0.56, image.size * 0.58, image.size * 0.56, image.size * 0.07, cutout);
 }
 
 function drawNext(image, color) {
@@ -269,7 +279,7 @@ function makeImage(size, name, { state = false, attention = false, highlight = f
   const image = { size, state, data: Buffer.alloc(size * size * 4) };
   const baseName = name.replace(/-(attention|highlight|busy|v2|selected)$/, "");
   const glyph = glyphs[baseName] ?? glyphs.status;
-  const drawGlyph = (color) => ["approve", "reject", "next", "git-status", "git-diff", "git-review", "git-test", "git-commit-prep"].includes(baseName) || baseName.startsWith("git-focus-")
+  const drawGlyph = (color) => ["approve", "reject", "answer", "next", "git-status", "git-diff", "git-review", "git-test", "git-commit-prep"].includes(baseName) || baseName.startsWith("git-focus-")
     ? drawWithShadow(image, glyph.draw, color)
     : glyph.draw(image, color);
   if (state) {
@@ -303,6 +313,7 @@ for (const [name, color] of Object.entries(statusStates)) {
 }
 await writePair("states", "approve-attention", { state: true, attention: true });
 await writePair("states", "reject-attention", { state: true, attention: true });
+await writePair("states", "answer-attention", { state: true, attention: true });
 await writePair("states", "next-highlight", { state: true, highlight: true });
 await writePair("states", "refresh-busy", { state: true, busy: true });
 await writePair("states", "git-status-dirty", { state: true });

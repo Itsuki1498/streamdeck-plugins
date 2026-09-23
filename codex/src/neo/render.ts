@@ -5,7 +5,7 @@ import type { CodexSnapshot, PendingApproval } from "../codex/types.js";
 import { gitWorkspaceDisplayTitle } from "../git/status.js";
 import type { GitSnapshot } from "../git/types.js";
 
-export type ControllerNotice = "" | "APPROVAL CHANGED" | "APPROVE FAILED" | "REJECT FAILED";
+export type ControllerNotice = "" | "APPROVAL CHANGED" | "APPROVE FAILED" | "REJECT FAILED" | "ANSWER FAILED";
 export type InfoBarWorkspace = { index: number; total: number; snapshot: GitSnapshot };
 
 export function renderInfoBar(snapshot: CodexSnapshot, notice: ControllerNotice = "", workspace?: InfoBarWorkspace, now = Date.now()): string {

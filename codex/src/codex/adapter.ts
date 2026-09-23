@@ -1,6 +1,6 @@
 import { CodexConnection } from "./connection.js";
-import { approvalIdentityKey, isApprovalActionSafe } from "./queue.js";
-import type { CodexSnapshot, PendingApproval } from "./types.js";
+import { approvalIdentityKey, isApprovalActionSafe, isQuestionActionSafe, questionIdentityKey } from "./queue.js";
+import type { CodexSnapshot, PendingApproval, PendingQuestion } from "./types.js";
 
 export class CodexAdapter {
   private readonly connection: CodexConnection;
@@ -38,6 +38,23 @@ export class CodexAdapter {
       if (remaining && slotStatus !== "approval") return;
     }
     throw new Error(`${decision === "approve" ? "Approve" : "Reject"} failed; request is still pending.`);
+  }
+
+  async answer(question: PendingQuestion, answer: string): Promise<void> {
+    const before = await this.connection.snapshot();
+    if (!isQuestionActionSafe(before, question)) {
+      throw new Error("Question changed or cannot be identified safely.");
+    }
+    await this.connection.dispatchQuestionAnswer(answer);
+    const deadline = Date.now() + 3500;
+    while (Date.now() < deadline) {
+      await wait(250);
+      const after = await this.connection.snapshot();
+      const remaining = after.questions.find((candidate) => questionIdentityKey(candidate) === questionIdentityKey(question));
+      const slotStatus = after.slots.find((candidate) => candidate.threadKey === question.threadId)?.status;
+      if (!remaining || slotStatus !== "input") return;
+    }
+    throw new Error("Answer failed; the question is still pending.");
   }
 }
 

@@ -21,6 +21,7 @@
     .error { min-height: 15px; color: #fca5a5; font-size: 11px; }
     .choose { display: block; box-sizing: border-box; text-align: center; }
     .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    textarea { width: 100%; box-sizing: border-box; min-height: 74px; padding: 8px; color: #f8fafc; background: #0f172a; border: 1px solid #475569; border-radius: 6px; resize: vertical; font: inherit; }
   </style>
 </head>
 <body>
@@ -35,11 +36,12 @@
     let context;
     let propertyInspectorUUID;
     let actionId = "";
-    let settings = { customImages: {} };
+    let settings = { customImages: {}, answerText: "" };
 
     const stateLabels = {
       approve: ["通常", "承認待ち"],
       reject: ["通常", "承認待ち"],
+      answer: ["通常", "回答待ち"],
       next: ["通常", "複数の承認待ち"],
       "usage-five-hour": ["5H 使用量"],
       "usage-weekly": ["WEEK 使用量"],
@@ -129,6 +131,23 @@
     function buildStateRows() {
       const root = document.getElementById("states");
       root.replaceChildren();
+      if (actionName() === "answer") {
+        const section = document.createElement("div");
+        const label = document.createElement("label");
+        label.textContent = "送信する回答";
+        const input = document.createElement("textarea");
+        input.placeholder = "例: はい、進めてください";
+        input.value = typeof settings.answerText === "string" ? settings.answerText : "";
+        input.oninput = () => {
+          settings.answerText = input.value;
+          sendSettings();
+        };
+        const hint = document.createElement("p");
+        hint.className = "hint";
+        hint.textContent = "Codexが質問待ちのとき、この文章を現在の質問へ送信します。選択肢のラベルと同じ文字を設定すると、その選択肢を選びます。";
+        section.append(label, input, hint);
+        root.append(section);
+      }
       const labels = stateLabels[actionName()] || ["通常"];
       labels.forEach((label, state) => {
         const row = document.createElement("div");
@@ -187,7 +206,7 @@
       context = action.context;
       document.getElementById("heading").textContent = "Codex Neo Deck の画像";
       const incoming = action.payload && action.payload.settings ? action.payload.settings : {};
-      settings = { customImages: { ...(incoming.customImages || {}) } };
+      settings = { customImages: { ...(incoming.customImages || {}) }, answerText: typeof incoming.answerText === "string" ? incoming.answerText : "" };
       if (incoming.customImage && !settings.customImages["0"]) settings.customImages["0"] = incoming.customImage;
       if (incoming.customAlertImage && !settings.customImages["1"]) settings.customImages["1"] = incoming.customAlertImage;
       buildStateRows();
@@ -204,7 +223,7 @@
           const message = JSON.parse(event.data);
           if (message.event === "didReceiveSettings") {
             const incomingSettings = message.payload?.settings || {};
-            settings = { customImages: { ...(incomingSettings.customImages || {}) } };
+            settings = { customImages: { ...(incomingSettings.customImages || {}) }, answerText: typeof incomingSettings.answerText === "string" ? incomingSettings.answerText : "" };
             if (incomingSettings.customImage && !settings.customImages["0"]) settings.customImages["0"] = incomingSettings.customImage;
             if (incomingSettings.customAlertImage && !settings.customImages["1"]) settings.customImages["1"] = incomingSettings.customAlertImage;
             buildStateRows();
